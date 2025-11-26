@@ -7,16 +7,10 @@ export class Onion {
   }
 
   async run(): Promise<void> {
-    // Tracks the highest index successfully entered by dispatch.
-    // Used to check for duplicate/circular next() calls.
-    let lastIndex = -1;
+    // lastIndex is REMOVED
 
     const dispatch = async (index: number): Promise<void> => {
-      // 1. Duplicate next() Check (Your previous addition)
-      if (index <= lastIndex) {
-        throw new Error("next() called multiple times");
-      }
-      lastIndex = index;
+      // The lastIndex logic is REMOVED from here
 
       // Return if we ran out of middlewares
       if (index >= this.middlewares.length || index < 0) {
@@ -31,8 +25,14 @@ export class Onion {
 
       // Define the next() function for the current middleware
       const next: Next = async () => {
+        // *** 1. New Duplicate next() Check (Replaces lastIndex) ***
+        if (nextCalled) {
+          throw new Error("next() called multiple times");
+        }
+
         // mark the next middlware as called
         nextCalled = true;
+
         try {
           // Call the next middleware in the chain
           return await dispatch(index + 1);
@@ -46,12 +46,10 @@ export class Onion {
       try {
         await middleware!(next);
       } catch (err) {
-        // FIXME: support error handling (e.g., context and logging)
         throw err;
       }
 
-      // If next() was called, but the promise inside next() didn't resolve (i.e., was not awaited),
-      // then nextResolved will be false, and we throw.
+      // 2. Await Check remains the same
       if (nextCalled && !nextResolved) {
         throw new Error(
           "Middleware resolved before downstream. You are probably missing an await or return.",
