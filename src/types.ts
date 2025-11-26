@@ -1,2 +1,19 @@
 export type Next = () => Promise<void>;
-export type Handler = (next: Next) => Promise<void> | (() => Promise<void>);
+export type Middleware = (next: Next) => Promise<void> | (() => Promise<void>);
+
+export enum Method {
+  Get = "get",
+  Post = "post",
+  Put = "put",
+}
+
+export type RequestHandler = <M extends Middleware = Middleware>(
+  path: string,
+  ...handlers: (M | M[])[]
+) => void;
+
+export interface Request {
+  [Method.Get]: RequestHandler;
+  [Method.Post]: RequestHandler;
+  [Method.Put]: RequestHandler;
+}
