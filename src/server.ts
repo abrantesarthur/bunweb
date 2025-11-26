@@ -5,11 +5,18 @@ import {
   type RequestHandler,
 } from "./types";
 
+interface RouteLayer {
+  method: Method;
+  path: string;
+  stack: Middleware[];
+}
+
 // get the singleton instance
 export const server = () => Bunweb.getInstance();
 
 class Bunweb implements Request {
   private static instance: Bunweb;
+  private routes: RouteLayer[] = [];
 
   private constructor() {} // forbid new Bunweb()
 
@@ -21,15 +28,40 @@ class Bunweb implements Request {
   }
 
   get: RequestHandler = (path, ...handlers) =>
-    this.delegate(path, Method.Get, ...handlers);
+    this.registerRoute(path, Method.Get, ...handlers);
   post: RequestHandler = (path, ...handlers) =>
-    this.delegate(path, Method.Post, ...handlers);
+    this.registerRoute(path, Method.Post, ...handlers);
   put: RequestHandler = (path, ...handlers) =>
-    this.delegate(path, Method.Put, ...handlers);
+    this.registerRoute(path, Method.Put, ...handlers);
 
-  private delegate = <M extends Middleware = Middleware>(
+  private registerRoute = <M extends Middleware = Middleware>(
     path: string,
     method: Method,
     ...handlers: (M | M[])[]
-  ) => {};
+  ) => {
+    const stack = handlers.reduce<Middleware[]>((acc, handler) => {
+      if (Array.isArray(handler)) {
+        const fns = handler.filter((fn): fn is M => typeof fn === "function");
+        if (fns.length !== handler.length) {
+          throw new Error(
+            `The path "${path}" contains a non-functional "${method}" handler.`,
+          );
+        }
+        acc.push(...handler);
+        return acc;
+      }
+
+      if (typeof handler === "function") {
+        acc.push(handler);
+      }
+
+      return acc;
+    }, []);
+
+    this.routes.push({
+      method,
+      path,
+      stack,
+    });
+  };
 }
