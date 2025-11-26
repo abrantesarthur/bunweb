@@ -9,11 +9,16 @@ export enum Method {
 
 export type RequestHandler = <M extends Middleware = Middleware>(
   path: string,
-  ...handlers: (M | M[])[]
+  ...middlewares: (M | M[])[]
 ) => void;
 
 export interface Request {
   [Method.Get]: RequestHandler;
   [Method.Post]: RequestHandler;
   [Method.Put]: RequestHandler;
+}
+
+export interface RouteDefinition {
+  path: string;
+  middlewares: Middleware[];
 }

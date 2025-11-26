@@ -3,20 +3,19 @@ import {
   type Middleware,
   type Request,
   type RequestHandler,
+  type RouteDefinition,
 } from "./types";
-
-interface RouteLayer {
-  method: Method;
-  path: string;
-  stack: Middleware[];
-}
 
 // get the singleton instance
 export const server = () => Bunweb.getInstance();
 
 class Bunweb implements Request {
   private static instance: Bunweb;
-  private routes: RouteLayer[] = [];
+  private routesByMethod: Record<Method, RouteDefinition[]> = {
+    [Method.Get]: [],
+    [Method.Post]: [],
+    [Method.Put]: [],
+  };
 
   private constructor() {} // forbid new Bunweb()
 
@@ -27,19 +26,19 @@ class Bunweb implements Request {
     return Bunweb.instance;
   }
 
-  get: RequestHandler = (path, ...handlers) =>
-    this.registerRoute(path, Method.Get, ...handlers);
-  post: RequestHandler = (path, ...handlers) =>
-    this.registerRoute(path, Method.Post, ...handlers);
-  put: RequestHandler = (path, ...handlers) =>
-    this.registerRoute(path, Method.Put, ...handlers);
+  get: RequestHandler = (path, ...middlewares) =>
+    this.registerRoute(path, Method.Get, ...middlewares);
+  post: RequestHandler = (path, ...middlewares) =>
+    this.registerRoute(path, Method.Post, ...middlewares);
+  put: RequestHandler = (path, ...middlewares) =>
+    this.registerRoute(path, Method.Put, ...middlewares);
 
   private registerRoute = <M extends Middleware = Middleware>(
     path: string,
     method: Method,
-    ...handlers: (M | M[])[]
+    ...middlewares: (M | M[])[]
   ) => {
-    const stack = handlers.reduce<Middleware[]>((acc, handler) => {
+    const flatMiddlewares = middlewares.reduce<Middleware[]>((acc, handler) => {
       if (Array.isArray(handler)) {
         const fns = handler.filter((fn): fn is M => typeof fn === "function");
         if (fns.length !== handler.length) {
@@ -58,10 +57,9 @@ class Bunweb implements Request {
       return acc;
     }, []);
 
-    this.routes.push({
-      method,
+    this.routesByMethod[method].push({
       path,
-      stack,
+      middlewares: flatMiddlewares,
     });
   };
 }
