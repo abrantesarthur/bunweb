@@ -1,21 +1,21 @@
 import { describe, expect, it } from "bun:test";
 import { Onion } from "../src/onion";
-import type { Handler, Next } from "../src/types";
+import type { Middleware, Next } from "../src/types";
 
 describe("Onion.run", () => {
   it("awaits middlewares in onion order when each awaits next", async () => {
     const calls: string[] = [];
-    const m1: Handler = async (next) => {
+    const m1: Middleware = async (next) => {
       calls.push("m1 before");
       await next?.();
       calls.push("m1 after");
     };
-    const m2: Handler = async (next) => {
+    const m2: Middleware = async (next) => {
       calls.push("m2 before");
       await next?.();
       calls.push("m2 after");
     };
-    const m3: Handler = async (next) => {
+    const m3: Middleware = async (next) => {
       calls.push("m3");
     };
     const onion = new Onion([m1, m2, m3]);
@@ -33,10 +33,10 @@ describe("Onion.run", () => {
 
   it("stops the chain when a middleware does not call next", async () => {
     const calls: string[] = [];
-    const m1: Handler = async () => {
+    const m1: Middleware = async () => {
       calls.push("stop");
     };
-    const m2: Handler = async () => {
+    const m2: Middleware = async () => {
       calls.push("skipped");
     };
     const onion = new Onion([m1, m2]);

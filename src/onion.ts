@@ -1,8 +1,8 @@
-import type { Handler, Next } from "./types";
+import type { Middleware, Next } from "./types";
 
 export class Onion {
-  middlewares: Handler[];
-  constructor(middlewares: Handler[]) {
+  middlewares: Middleware[];
+  constructor(middlewares: Middleware[]) {
     this.middlewares = middlewares;
   }
 
