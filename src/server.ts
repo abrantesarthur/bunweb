@@ -50,9 +50,13 @@ class Bunweb implements Request {
         return acc;
       }
 
-      if (typeof handler === "function") {
-        acc.push(handler);
+      if (typeof handler !== "function") {
+        throw new Error(
+          `The path "${path}" contains a non-functional "${method}" handler.`,
+        );
       }
+
+      acc.push(handler);
 
       return acc;
     }, []);
