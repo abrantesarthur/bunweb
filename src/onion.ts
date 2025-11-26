@@ -7,6 +7,7 @@ export class Onion {
   }
 
   async run(): Promise<void> {
+    // tracks the most recently dispatched middleware
     let lastIndex = -1;
     const dispatch = async (index: number): Promise<void> => {
       if (index <= lastIndex) {
@@ -15,6 +16,7 @@ export class Onion {
 
       lastIndex = index;
 
+      // return to upstream if ran out of middlewares to execute
       if (index >= this.middlewares.length || index < 0) {
         return;
       }
