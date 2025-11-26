@@ -55,41 +55,23 @@ describe("Onion.run", () => {
       async () => {},
     ]);
 
-    expect(onion.run()).rejects.toThrow("next() called multiple times");
+    await expect(onion.run()).rejects.toThrow("next() called multiple times");
   });
 
-  it("runs downstream even when next is not awaited", async () => {
-    const calls: string[] = [];
-    const m1: Handler = async (next) => {
-      calls.push("outer before");
-      next();
-      calls.push("outer after immediate");
-    };
-    const m2: Handler = async () => {
-      calls.push("inner before");
-      await Bun.sleep(5);
-      calls.push("inner after");
-    };
-    const onion = new Onion([m1, m2]);
-
-    await onion.run();
-    expect(calls).toEqual([
-      "outer before",
-      "inner before",
-      "outer after immediate",
+  it("throws when next is not awaited", async () => {
+    const onion = new Onion([
+      async (next) => {
+        next();
+      },
+      async () => {},
     ]);
 
-    await Bun.sleep(10);
-
-    expect(calls).toEqual([
-      "outer before",
-      "inner before",
-      "outer after immediate",
-      "inner after",
-    ]);
+    expect(onion.run()).rejects.toThrow(
+      "Middleware resolved before downstream. You are probably missing an await or return.",
+    );
   });
 
-  it("lets upstream await even when a downstream middleware returns early", async () => {
+  it("lets upstream await downstream completion", async () => {
     const calls: string[] = [];
     const onion = new Onion([
       async (next) => {
@@ -99,7 +81,7 @@ describe("Onion.run", () => {
       },
       async (next) => {
         calls.push("layer2 start");
-        next();
+        await next();
         calls.push("layer2 after-next");
       },
       async () => {
@@ -115,19 +97,9 @@ describe("Onion.run", () => {
       "layer1 start",
       "layer2 start",
       "layer3 start",
-      "layer2 after-next",
-      "layer1 end",
-    ]);
-
-    await Bun.sleep(10);
-
-    expect(calls).toEqual([
-      "layer1 start",
-      "layer2 start",
-      "layer3 start",
-      "layer2 after-next",
-      "layer1 end",
       "layer3 end",
+      "layer2 after-next",
+      "layer1 end",
     ]);
   });
 });
