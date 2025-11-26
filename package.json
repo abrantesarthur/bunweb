@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "build": "bunx tsc --project tsconfig.build.json",
+    "test": "bun test",
     "prepublishOnly": "bun run build"
   },
   "license": "MIT",
