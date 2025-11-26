@@ -1,25 +1,30 @@
 import type { Handler, Next } from "./types";
 
 export class Onion {
-    middlewares: Handler[];
-    constructor(middlewares: Handler[]) {
-        this.middlewares = middlewares;
-    }
+  middlewares: Handler[];
+  constructor(middlewares: Handler[]) {
+    this.middlewares = middlewares;
+  }
 
-    async run(): Promise<void> {
-        const dispatch = async (index: number): Promise<void> => {
-            if(index === this.middlewares.length || index < 0) {
-                return;
-            }
+  async run(): Promise<void> {
+    let lastIndex = -1;
+    const dispatch = async (index: number): Promise<void> => {
+      if (index <= lastIndex) {
+        throw new Error("next() called multiple times");
+      }
 
-            const middleware = this.middlewares[index];
+      lastIndex = index;
 
-            const next: Next = async () => {
-                await dispatch(index + 1);
-            }
+      if (index >= this.middlewares.length || index < 0) {
+        return;
+      }
 
-            await middleware!(next);
-        }
-        await dispatch(0);
-    }
+      const middleware = this.middlewares[index];
+
+      const next: Next = () => dispatch(index + 1);
+
+      await middleware!(next);
+    };
+    await dispatch(0);
+  }
 }

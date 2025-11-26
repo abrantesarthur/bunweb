@@ -46,6 +46,18 @@ describe("Onion.run", () => {
     expect(calls).toEqual(["stop"]);
   });
 
+  it("throws when a middleware calls next more than once", async () => {
+    const onion = new Onion([
+      async (next) => {
+        await next();
+        await next();
+      },
+      async () => {},
+    ]);
+
+    expect(onion.run()).rejects.toThrow("next() called multiple times");
+  });
+
   it("runs downstream even when next is not awaited", async () => {
     const calls: string[] = [];
     const m1: Handler = async (next) => {
