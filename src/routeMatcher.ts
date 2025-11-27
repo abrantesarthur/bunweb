@@ -75,14 +75,9 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
-  private search(
-    node: Node,
-    segments: string[],
-    index: number,
-  ): Middleware[] | undefined {
+  private search(node: Node, segments: string[], index: number): Middleware[] {
     if (index >= segments.length) {
-      // treat static branches without handlers as misses so dynamic routes can still match
-      return node.exactMiddlewares.length ? node.exactMiddlewares : undefined;
+      return node.exactMiddlewares;
     }
 
     const segment = segments[index];
@@ -90,7 +85,7 @@ export class RouteMatcher {
     const staticChild = node.children.get(segment!);
     if (staticChild) {
       const match = this.search(staticChild, segments, index + 1);
-      if (match !== undefined) {
+      if (match.length > 0) {
         return match;
       }
     }
@@ -98,19 +93,18 @@ export class RouteMatcher {
     const dynamicChild = node.children.get(DYNAMIC_KEY);
     if (dynamicChild) {
       const match = this.search(dynamicChild, segments, index + 1);
-      if (match !== undefined) {
+      if (match.length > 0) {
         return match;
       }
     }
 
-    return undefined;
+    return [];
   }
 
   private splitPath(path: string): string[] {
     return path.split("/").filter(Boolean);
   }
 
-  // FIXME: support *
   private parseSegment(segment: string): {
     key: string;
     isDynamic: boolean;

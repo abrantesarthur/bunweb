@@ -66,13 +66,6 @@ export class Bunweb implements Request {
 
 /**
 RULES
-Static routes match before dynamic routes.
-Example:
-/users/profile
-/users/:id
-Request: /users/profile → matches static, not the dynamic route.
-
-
 Dynamic routes match before wildcards.
 Example:
 /files/:name

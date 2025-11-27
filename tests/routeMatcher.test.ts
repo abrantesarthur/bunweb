@@ -95,7 +95,7 @@ describe("RouteMatcher", () => {
       const handler: Middleware = async () => {};
       matcher.insert("/users/:id", [handler]);
 
-      expect(matcher.match("/unknown")).toBeUndefined();
+      expect(matcher.match("/unknown")).toBeEmpty();
     });
   });
 
@@ -112,8 +112,8 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/ping")).toEqual([b]);
 
       matcher.clear();
-      expect(matcher.match("/users/1")).toBeUndefined();
-      expect(matcher.match("/ping")).toBeUndefined();
+      expect(matcher.match("/users/1")).toBeEmpty();
+      expect(matcher.match("/ping")).toBeEmpty();
 
       matcher.insert("/users/profile", [c]);
       expect(matcher.match("/users/profile")).toEqual([c]);
