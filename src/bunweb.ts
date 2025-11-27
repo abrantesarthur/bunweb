@@ -23,7 +23,8 @@ export class Bunweb implements Request {
     return Bunweb.instance;
   }
 
-  //
+  // FIXME: support use
+
   get: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Get, ...middlewares);
   post: RequestHandler = (path, ...middlewares) =>

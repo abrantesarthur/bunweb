@@ -6,13 +6,21 @@ const DYNAMIC_KEY = ":";
 
 export class Node {
   children: Map<string, Node>;
-  middlewares?: Middleware[];
+  exactMiddlewares: Middleware[];
+  prefixMiddlewares: Middleware[];
   isDynamic?: boolean;
   paramName?: string;
 
   constructor() {
     this.children = new Map();
+    this.exactMiddlewares = [];
+    this.prefixMiddlewares = [];
   }
+}
+
+enum MiddlewareKind {
+  Exact = "exact",
+  Prefix = "prefix",
 }
 
 export class RouteMatcher {
@@ -22,10 +30,15 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
-  insert(path: string, middlewares: Middleware[]): void {
+  insert(
+    path: string,
+    middlewares: Middleware[],
+    middlewareKind: MiddlewareKind = MiddlewareKind.Exact,
+  ): void {
     const segments = this.splitPath(path);
     let current = this.root;
 
+    // traverse the path and ensure each segment has a node
     for (const segment of segments) {
       const parsed = this.parseSegment(segment);
 
@@ -45,12 +58,11 @@ export class RouteMatcher {
       current = child;
     }
 
-    const additions = [...middlewares];
-    if (current.middlewares) {
-      current.middlewares.push(...additions);
-    } else {
-      current.middlewares = additions;
-    }
+    // append middlewares in the leaf node
+    (middlewareKind === MiddlewareKind.Exact
+      ? current.exactMiddlewares
+      : current.prefixMiddlewares
+    ).push(...middlewares);
   }
 
   match(path: string): Middleware[] | undefined {
@@ -65,7 +77,7 @@ export class RouteMatcher {
     index: number,
   ): Middleware[] | undefined {
     if (index >= segments.length) {
-      return node.middlewares;
+      return node.exactMiddlewares;
     }
 
     const segment = segments[index];
@@ -93,6 +105,7 @@ export class RouteMatcher {
     return path.split("/").filter(Boolean);
   }
 
+  // FIXME: support *
   private parseSegment(segment: string): {
     key: string;
     isDynamic: boolean;
