@@ -71,6 +71,10 @@ export class RouteMatcher {
     return result ? [...result] : result;
   }
 
+  clear(): void {
+    this.root = new Node();
+  }
+
   private search(
     node: Node,
     segments: string[],
