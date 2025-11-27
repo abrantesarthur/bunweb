@@ -18,7 +18,7 @@ export class Node {
   }
 }
 
-enum RouteMatcherMode {
+export enum RouteMatcherMode {
   Exact = "exact",
   Prefix = "prefix",
 }

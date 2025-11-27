@@ -4,20 +4,19 @@ import {
   type Request,
   type RequestHandler,
 } from "./types";
-import { RouteMatcher } from "./routeMatcher";
+import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 
 export class Bunweb implements Request {
   private static instance: Bunweb;
   private routeMatchersByMethod: Record<Method, RouteMatcher>;
-  private useMatcher: RouteMatcher;
 
   private constructor() {
     this.routeMatchersByMethod = {
       [Method.Get]: new RouteMatcher(),
       [Method.Post]: new RouteMatcher(),
       [Method.Put]: new RouteMatcher(),
+      [Method.Use]: new RouteMatcher(RouteMatcherMode.Prefix),
     };
-    this.useMatcher = new RouteMatcher();
   } // forbid new Bunweb()
 
   static getInstance(): Bunweb {
@@ -27,14 +26,14 @@ export class Bunweb implements Request {
     return Bunweb.instance;
   }
 
-  // FIXME: support use
-
   get: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Get, ...middlewares);
   post: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Post, ...middlewares);
   put: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Put, ...middlewares);
+  use: RequestHandler = (path, ...middlewares) =>
+    this.registerRoute(path, Method.Use, ...middlewares);
 
   private registerRoute = <M extends Middleware = Middleware>(
     path: string,
