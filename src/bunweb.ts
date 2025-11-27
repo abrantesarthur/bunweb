@@ -66,18 +66,6 @@ export class Bunweb implements Request {
 
 /**
 RULES
-Dynamic routes match before wildcards.
-Example:
-/files/:name
-/files/*
-Request: /files/readme → matches dynamic, not the wildcard.
-
-More specific dynamic routes win (more static segments).
-Example:
-/users/:id/orders/:orderId
-/users/:id/:extra
-Request: /users/5/orders/9 → matches the first (more static structure).
-
 Dynamic routes with equal specificity fall back to registration order.
 Example:
 /post/:id (registered first)

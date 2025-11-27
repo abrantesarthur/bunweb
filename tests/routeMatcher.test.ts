@@ -57,6 +57,28 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/users/1")).toEqual([c, d]);
     });
 
+    it("prefers earlier registration when dynamic routes have equal specificity", () => {
+      const matcher = new RouteMatcher();
+      const first: Middleware = async () => {};
+      const second: Middleware = async () => {};
+
+      matcher.insert("/post/:id", [first]);
+      matcher.insert("/post/:slug", [second]);
+
+      expect(matcher.match("/post/abc")).toEqual([first, second]);
+    });
+
+    it("prefers earlier registration when dynamic routes have equal specificity", () => {
+      const matcher = new RouteMatcher();
+      const first: Middleware = async () => {};
+      const second: Middleware = async () => {};
+
+      matcher.insert("/post/id", [first]);
+      matcher.insert("/post/id", [second]);
+
+      expect(matcher.match("/post/id")).toEqual([first, second]);
+    });
+
     it("prefers more specific dynamic routes (more static segments)", () => {
       const matcher = new RouteMatcher();
       const specific: Middleware = async () => {};
