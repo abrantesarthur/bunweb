@@ -23,6 +23,7 @@ export class Bunweb implements Request {
     return Bunweb.instance;
   }
 
+  //
   get: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Get, ...middlewares);
   post: RequestHandler = (path, ...middlewares) =>
@@ -61,3 +62,46 @@ export class Bunweb implements Request {
     this.routesByMethod[method].insert(path, flatMiddlewares);
   };
 }
+
+/**
+ * FIXMES
+ * - Routing properties and differences between .use() and .get/post/put() to do!
+ *    1. .use runs for all methods.
+ *        ex
+ *          .use(/path) runs for .get(/path), .post(/path), and .put(/path)
+ *          .get(/path) runs only for .get(/path)
+ *        data structure
+ *          add a dedicated useMatcher: RouteMatcher on Bunweb that only stores prefix middlewares
+ *          implement matchPrefixes and matchExact into RouteMatcher class.
+ *          On registration:
+ *            .use inserts into useMatcher;
+ *            .get/.post/.put insert into their per-method matchers.
+ *          On request, resolve:
+ *          const prefixes = useMatcher.matchPrefixes(path);
+ *          const exact = methodMatcher.matchExact(path); return [...prefixes, ...exact];
+ *    2. .use runs a prefix match. .get/post/put runs for the exact one route match
+ *        ex:
+ *          .use(/path) runs for /path, /path/x, etc.
+ *          .get/post/put(/path) runs for /path only.
+ *        data strucutre
+ *          Node has prefixMiddlewares from .use and exactMiddlewares from .get/put/post.
+ *          During match, we accumulate all prefixMiddlewares as we walk down and only
+ *          accummulate exactMiddlewares when the path is fully consumed.
+ *    3. .use(/path) always runs before .get/post/put(/path)
+ *        data structure
+ *          as we acccummulate prefixes down the tree, always push all collected
+ *          prefixMiddlewares first, then exactMiddlewares from the final node.
+ *    4. Registration order
+ *        data structure
+ *          We append middlewares in both prefixMiddlewares and exactMiddlewares in
+ *          registration order so duplicate .use or .get calls preserve sequencing.
+ *    5. Matchin with no leaft
+ *        the current matcher returns undefined if no exact leaf is found. With prefixes,
+ *        we need to return the accumulated prefixMiddlewares even when there’s no exact
+ *        match (e.g., .use("/api") + GET /api/missing should still run)
+ *    6. Traversal and precedence
+ *        keep the same path-choice rules (static before dynamic, tie by registration order)
+ *        while accumulating prefixes along the chosen path. That way a prefix on /users/profile
+ *        doesn’t get skipped by a dynamic branch at /users/:id.
+ *
+ */
