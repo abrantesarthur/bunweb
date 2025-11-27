@@ -77,7 +77,8 @@ export class RouteMatcher {
     index: number,
   ): Middleware[] | undefined {
     if (index >= segments.length) {
-      return node.exactMiddlewares;
+      // treat static branches without handlers as misses so dynamic routes can still match
+      return node.exactMiddlewares.length ? node.exactMiddlewares : undefined;
     }
 
     const segment = segments[index];
