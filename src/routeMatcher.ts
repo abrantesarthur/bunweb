@@ -1,8 +1,10 @@
 import type { Middleware } from "./types";
 
-const STATIC_SEGMENT = /^[a-zA-Z0-9_-]+$/;
+const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
 const DYNAMIC_KEY = ":";
+const WILDCARD_SEGMENT = "*";
+const WILDCARD_KEY = "*";
 
 export class Node {
   children: Map<string, Node>;
@@ -39,8 +41,15 @@ export class RouteMatcher {
     let current = this.root;
 
     // traverse the path and ensure each segment has a node
-    for (const segment of segments) {
+    for (let index = 0; index < segments.length; index++) {
+      const segment = segments[index]!;
       const parsed = this.parseSegment(segment);
+
+      if (parsed.isWildcard && index !== segments.length - 1) {
+        throw new Error(
+          'Wildcard "*" must be the last segment in a route path.',
+        );
+      }
 
       let child = current.children.get(parsed.key);
       if (!child) {
@@ -75,9 +84,19 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
+  // FIXME: implement searchPrefix or modify search to accept kind
   private search(node: Node, segments: string[], index: number): Middleware[] {
     if (index >= segments.length) {
-      return node.exactMiddlewares;
+      if (node.exactMiddlewares.length > 0) {
+        return node.exactMiddlewares;
+      }
+
+      const wildcardChild = node.children.get(WILDCARD_KEY);
+      if (wildcardChild) {
+        return wildcardChild.exactMiddlewares;
+      }
+
+      return [];
     }
 
     const segment = segments[index];
@@ -98,6 +117,11 @@ export class RouteMatcher {
       }
     }
 
+    const wildcardChild = node.children.get(WILDCARD_KEY);
+    if (wildcardChild) {
+      return wildcardChild.exactMiddlewares;
+    }
+
     return [];
   }
 
@@ -108,16 +132,22 @@ export class RouteMatcher {
   private parseSegment(segment: string): {
     key: string;
     isDynamic: boolean;
+    isWildcard: boolean;
     paramName?: string;
   } {
+    if (segment === WILDCARD_SEGMENT) {
+      return { key: WILDCARD_KEY, isDynamic: false, isWildcard: true };
+    }
+
     if (STATIC_SEGMENT.test(segment)) {
-      return { key: segment, isDynamic: false };
+      return { key: segment, isDynamic: false, isWildcard: false };
     }
 
     if (DYNAMIC_SEGMENT.test(segment)) {
       return {
         key: DYNAMIC_KEY,
         isDynamic: true,
+        isWildcard: false,
         paramName: segment.slice(1),
       };
     }

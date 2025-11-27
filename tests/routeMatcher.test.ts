@@ -97,6 +97,42 @@ describe("RouteMatcher", () => {
 
       expect(matcher.match("/unknown")).toBeEmpty();
     });
+
+    it("prefers dynamic routes over wildcard routes", () => {
+      const matcher = new RouteMatcher();
+      const dynamicHandler: Middleware = async () => {};
+      const wildcardHandler: Middleware = async () => {};
+
+      matcher.insert("/files/:name", [dynamicHandler]);
+      matcher.insert("/files/*", [wildcardHandler]);
+
+      expect(matcher.match("/files/readme")).toEqual([dynamicHandler]);
+      expect(matcher.match("/files/readme/nested")).toEqual([wildcardHandler]);
+    });
+
+    it("falls back to wildcard routes when no static or dynamic match exists", () => {
+      const matcher = new RouteMatcher();
+      const staticHandler: Middleware = async () => {};
+      const wildcardHandler: Middleware = async () => {};
+
+      matcher.insert("/assets/app.js", [staticHandler]);
+      matcher.insert("/assets/*", [wildcardHandler]);
+
+      expect(matcher.match("/assets/app.js")).toEqual([staticHandler]);
+      expect(matcher.match("/assets/missing.png")).toEqual([wildcardHandler]);
+      expect(matcher.match("/assets/images/icon.png")).toEqual([
+        wildcardHandler,
+      ]);
+    });
+
+    it('throws when "*" is not the final segment', () => {
+      const matcher = new RouteMatcher();
+      const handler: Middleware = async () => {};
+
+      expect(() => matcher.insert("/oops/*/tail", [handler])).toThrow(
+        'Wildcard "*" must be the last segment in a route path.',
+      );
+    });
   });
 
   describe("clear()", () => {
