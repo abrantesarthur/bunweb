@@ -24,6 +24,8 @@ export class Onion {
   /**
    * Executes all middlewares in order, wrapping the context.
    * Errors are caught and stored in ctx.error instead of being rethrown immediately.
+   * If an error exists and status is still 200 after all middleware executes,
+   * the status is automatically set to 500 (unhandled server error).
    * @param ctx - Context object passed through the middleware chain
    */
   async run(ctx: Context): Promise<void> {
@@ -69,7 +71,8 @@ export class Onion {
           throw error;
         }
         // Koa-style error handling: store runtime errors in context
-        // This allows downstream middleware to handle the error
+        // This allows downstream middleware to handle the error.
+        // If multiple middlewares throw erros, only the first one is stored.
         if (!ctx.error) {
           ctx.error = error;
         }
@@ -84,5 +87,12 @@ export class Onion {
     };
 
     await dispatch(0);
+
+    // If an error exists and status is still 200, set it to 500 (unhandled server error)
+    // This ensures errors always have error status codes
+    // Middleware can override by setting their own status (e.g., 400 for client errors)
+    if (ctx.error && ctx.status === 200) {
+      ctx.status = 500;
+    }
   }
 }

@@ -156,12 +156,8 @@ export class Bunweb implements Request {
           const onion = new Onion([useMiddlewares, methodMiddlewares]);
 
           // Execute the middleware chain
+          // Onion automatically sets status to 500 if error exists and status is still 200
           await onion.run(ctx);
-
-          // Handle errors - if error exists and status is still 200, set to 500
-          if (ctx.error && ctx.status === 200) {
-            ctx.status = 500;
-          }
 
           // Convert context to Response
           return ctx.toResponse();
@@ -176,7 +172,7 @@ export class Bunweb implements Request {
     });
   }
 
-  /**
+  /**⁄
    * Internal method to register a route with the specified method.
    * @param path - Route path pattern
    * @param method - HTTP method
