@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { RouteMatcher } from "../src/routeMatcher";
+import { RouteMatcher, RouteMatcherMode } from "../src/routeMatcher";
 import type { Middleware } from "../src/types";
 
 describe("RouteMatcher", () => {
@@ -176,5 +176,33 @@ describe("RouteMatcher", () => {
       matcher.insert("/users/profile", [c]);
       expect(matcher.match("/users/profile")).toEqual([c]);
     });
+  });
+});
+
+describe("RouteMatcher (prefix mode)", () => {
+  const matcher = new RouteMatcher(RouteMatcherMode.Prefix);
+
+  afterEach(() => {
+    matcher.clear();
+  });
+
+  it("accumulates prefix middlewares along the matched path", () => {
+    const api: Middleware = async () => {};
+    const users: Middleware = async () => {};
+
+    matcher.insert("/api", [api]);
+    matcher.insert("/api/users", [users]);
+
+    expect(matcher.match("/api")).toEqual([api]);
+    expect(matcher.match("/api/users")).toEqual([api, users]);
+    expect(matcher.match("/api/users/123")).toEqual([api, users]);
+  });
+
+  it("returns empty when no prefix matches", () => {
+    const handler: Middleware = async () => {};
+
+    matcher.insert("/api", [handler]);
+
+    expect(matcher.match("/other")).toBeEmpty();
   });
 });

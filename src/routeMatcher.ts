@@ -69,7 +69,10 @@ export class RouteMatcher {
 
   match(path: string): Middleware[] | undefined {
     const segments = this.splitPath(path);
-    const result = this.search(this.root, segments, 0);
+    const result =
+      this.mode === RouteMatcherMode.Prefix
+        ? this.searchPrefix(this.root, segments, 0, [])
+        : this.searchExact(this.root, segments, 0);
     return result ? [...result] : result;
   }
 
@@ -77,7 +80,11 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
-  private search(node: Node, segments: string[], index: number): Middleware[] {
+  private searchExact(
+    node: Node,
+    segments: string[],
+    index: number,
+  ): Middleware[] {
     if (index >= segments.length) {
       if (node.middlewares.length > 0) {
         return node.middlewares;
@@ -95,7 +102,7 @@ export class RouteMatcher {
 
     const staticChild = node.children.get(segment!);
     if (staticChild) {
-      const match = this.search(staticChild, segments, index + 1);
+      const match = this.searchExact(staticChild, segments, index + 1);
       if (match.length > 0) {
         return match;
       }
@@ -103,7 +110,7 @@ export class RouteMatcher {
 
     const dynamicChild = node.children.get(DYNAMIC_KEY);
     if (dynamicChild) {
-      const match = this.search(dynamicChild, segments, index + 1);
+      const match = this.searchExact(dynamicChild, segments, index + 1);
       if (match.length > 0) {
         return match;
       }
@@ -119,6 +126,61 @@ export class RouteMatcher {
 
   private splitPath(path: string): string[] {
     return path.split("/").filter(Boolean);
+  }
+
+  private searchPrefix(
+    node: Node,
+    segments: string[],
+    index: number,
+    collected: Middleware[],
+  ): Middleware[] {
+    const nextCollected =
+      node.middlewares.length > 0
+        ? [...collected, ...node.middlewares]
+        : collected;
+
+    if (index >= segments.length) {
+      const wildcardChild = node.children.get(WILDCARD_KEY);
+      if (wildcardChild) {
+        return [...nextCollected, ...wildcardChild.middlewares];
+      }
+      return nextCollected;
+    }
+
+    const segment = segments[index];
+
+    const staticChild = node.children.get(segment!);
+    if (staticChild) {
+      const match = this.searchPrefix(
+        staticChild,
+        segments,
+        index + 1,
+        nextCollected,
+      );
+      if (match.length > 0) {
+        return match;
+      }
+    }
+
+    const dynamicChild = node.children.get(DYNAMIC_KEY);
+    if (dynamicChild) {
+      const match = this.searchPrefix(
+        dynamicChild,
+        segments,
+        index + 1,
+        nextCollected,
+      );
+      if (match.length > 0) {
+        return match;
+      }
+    }
+
+    const wildcardChild = node.children.get(WILDCARD_KEY);
+    if (wildcardChild) {
+      return [...nextCollected, ...wildcardChild.middlewares];
+    }
+
+    return nextCollected.length > 0 ? nextCollected : [];
   }
 
   private parseSegment(segment: string): {
