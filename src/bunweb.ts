@@ -110,7 +110,7 @@ export class Bunweb implements Request {
           const path = url.pathname;
 
           // Map HTTP method to Method enum
-          let methodEnum: Method | null = null;
+          let methodEnum: Method;
           switch (method) {
             case "get":
               methodEnum = Method.Get;
@@ -135,17 +135,13 @@ export class Bunweb implements Request {
           const useParams = useMatch?.params ?? {};
 
           // 2. Get method-specific middlewares (exact match)
-          const methodMatch = methodEnum
-            ? this.routeMatchersByMethod[methodEnum].match(path)
-            : undefined;
+          const methodMatch =
+            this.routeMatchersByMethod[methodEnum].match(path);
           const methodMiddlewares = methodMatch?.middlewares ?? [];
           const methodParams = methodMatch?.params ?? {};
 
-          // Combine: use middlewares first, then method-specific
-          const allMiddlewares = [...useMiddlewares, ...methodMiddlewares];
-
           // If no middlewares matched, return 404
-          if (allMiddlewares.length === 0) {
+          if (useMiddlewares.length === 0 && methodMiddlewares.length === 0) {
             return new globalThis.Response("Not Found", { status: 404 });
           }
 
@@ -156,8 +152,8 @@ export class Bunweb implements Request {
           // Method-specific params completely replace prefix params when present
           ctx.params = methodMatch ? methodParams : useParams;
 
-          // Compose middlewares using Onion
-          const onion = new Onion(allMiddlewares);
+          // Compose middlewares using Onion (it will flatten the arrays internally)
+          const onion = new Onion([useMiddlewares, methodMiddlewares]);
 
           // Execute the middleware chain
           await onion.run(ctx);

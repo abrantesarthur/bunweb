@@ -11,10 +11,14 @@ export class Onion {
 
   /**
    * Creates a new Onion instance with the given middlewares.
-   * @param middlewares - Array of middleware functions to compose
+   * Accepts middlewares as individual functions or arrays of functions.
+   * @param middlewares - Middleware functions or arrays of middleware functions
    */
-  constructor(middlewares: Middleware[]) {
-    this.middlewares = middlewares;
+  constructor(middlewares: (Middleware | Middleware[])[]) {
+    // Flatten nested arrays and filter out non-functions
+    this.middlewares = middlewares.flatMap((mw) =>
+      Array.isArray(mw) ? mw : [mw],
+    );
   }
 
   /**

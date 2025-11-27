@@ -58,7 +58,9 @@ describe("Onion.run", () => {
     ]);
     const ctx = new Context(new Request("http://localhost/test"));
 
-    await expect(onion.run(ctx)).rejects.toThrow("next() called multiple times");
+    await expect(onion.run(ctx)).rejects.toThrow(
+      "next() called multiple times",
+    );
   });
 
   it("throws when next is not awaited", async () => {
@@ -177,5 +179,33 @@ describe("Onion.run", () => {
     ]);
     // Error should be cleared by handler 1
     expect(ctx.error).toBeUndefined();
+  });
+
+  it("accepts arrays of middlewares and flattens them", async () => {
+    const calls: string[] = [];
+    const m1: Middleware = async (ctx, next) => {
+      calls.push("m1");
+      await next();
+    };
+    const m2: Middleware = async (ctx, next) => {
+      calls.push("m2");
+      await next();
+    };
+    const m3: Middleware = async (ctx, next) => {
+      calls.push("m3");
+      await next();
+    };
+    const m4: Middleware = async (ctx, next) => {
+      calls.push("m4");
+      await next();
+    };
+
+    // Pass middlewares as arrays and individual functions
+    const onion = new Onion([m1, [m2, m3], m4]);
+    const ctx = new Context(new Request("http://localhost/test"));
+
+    await onion.run(ctx);
+
+    expect(calls).toEqual(["m1", "m2", "m3", "m4"]);
   });
 });
