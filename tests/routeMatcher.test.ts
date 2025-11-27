@@ -189,13 +189,17 @@ describe("RouteMatcher (prefix mode)", () => {
   it("accumulates prefix middlewares along the matched path", () => {
     const api: Middleware = async () => {};
     const users: Middleware = async () => {};
+    const users2: Middleware = async () => {};
+    const user: Middleware = async () => {};
 
     matcher.insert("/api", [api]);
     matcher.insert("/api/users", [users]);
+    matcher.insert("/api/users", [users2]);
+    matcher.insert("/api/users/:id", [user]);
 
     expect(matcher.match("/api")).toEqual([api]);
-    expect(matcher.match("/api/users")).toEqual([api, users]);
-    expect(matcher.match("/api/users/123")).toEqual([api, users]);
+    expect(matcher.match("/api/users")).toEqual([api, users, users2]);
+    expect(matcher.match("/api/users/123")).toEqual([api, users, users2, user]);
   });
 
   it("returns empty when no prefix matches", () => {
