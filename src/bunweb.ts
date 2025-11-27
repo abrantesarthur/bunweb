@@ -3,15 +3,15 @@ import {
   type Middleware,
   type Request,
   type RequestHandler,
-  type RouteDefinition,
 } from "./types";
+import { RouteMatcher } from "./routeMatcher";
 
 export class Bunweb implements Request {
   private static instance: Bunweb;
-  private routesByMethod: Record<Method, RouteDefinition[]> = {
-    [Method.Get]: [],
-    [Method.Post]: [],
-    [Method.Put]: [],
+  private routesByMethod: Record<Method, RouteMatcher> = {
+    [Method.Get]: new RouteMatcher(),
+    [Method.Post]: new RouteMatcher(),
+    [Method.Put]: new RouteMatcher(),
   };
 
   private constructor() {} // forbid new Bunweb()
@@ -58,9 +58,6 @@ export class Bunweb implements Request {
       return acc;
     }, []);
 
-    this.routesByMethod[method].push({
-      path,
-      middlewares: flatMiddlewares,
-    });
+    this.routesByMethod[method].insert(path, flatMiddlewares);
   };
 }

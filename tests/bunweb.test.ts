@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { server } from "../src/server";
-import { Method, type RouteDefinition, type Middleware } from "../src/types";
+import { RouteMatcher } from "../src/routeMatcher";
+import { Method, type Middleware } from "../src/types";
 
 // bypass private property type checks
 type BunwebInternal = {
@@ -9,7 +10,7 @@ type BunwebInternal = {
     method: Method,
     ...middlewares: (Middleware | Middleware[] | unknown)[]
   ) => void;
-  routesByMethod: Record<Method, RouteDefinition[]>;
+  routesByMethod: Record<Method, RouteMatcher>;
 };
 
 describe("Bunweb.registerRoute", () => {
@@ -17,7 +18,7 @@ describe("Bunweb.registerRoute", () => {
 
   beforeEach(() => {
     for (const method of [Method.Get, Method.Post, Method.Put]) {
-      bunweb.routesByMethod[method] = [];
+      bunweb.routesByMethod[method] = new RouteMatcher();
     }
   });
 
@@ -28,11 +29,13 @@ describe("Bunweb.registerRoute", () => {
 
     bunweb.registerRoute("/flatten", Method.Get, h1, [h2, h3]);
 
-    expect(bunweb.routesByMethod[Method.Get]).toEqual([
-      { path: "/flatten", middlewares: [h1, h2, h3] },
+    expect(bunweb.routesByMethod[Method.Get].match("/flatten")).toEqual([
+      h1,
+      h2,
+      h3,
     ]);
-    expect(bunweb.routesByMethod[Method.Post]).toEqual([]);
-    expect(bunweb.routesByMethod[Method.Put]).toEqual([]);
+    expect(bunweb.routesByMethod[Method.Post].match("/flatten")).toBeUndefined();
+    expect(bunweb.routesByMethod[Method.Put].match("/flatten")).toBeUndefined();
   });
 
   it("throws when a middleware array contains a non-function entry", () => {
@@ -41,6 +44,8 @@ describe("Bunweb.registerRoute", () => {
     expect(() =>
       bunweb.registerRoute("/bad", Method.Post, [handler, "oops" as unknown]),
     ).toThrow('The path "/bad" contains a non-functional "post" handler.');
+
+    expect(bunweb.routesByMethod[Method.Post].match("/bad")).toBeUndefined();
   });
 
   it("throws when non-function middleware arguments are provided outside arrays", () => {
@@ -49,6 +54,7 @@ describe("Bunweb.registerRoute", () => {
     expect(() =>
       bunweb.registerRoute("/skip", Method.Put, handler, null),
     ).toThrow('The path "/skip" contains a non-functional "put" handler.');
-    expect(bunweb.routesByMethod[Method.Put]).toEqual([]);
+
+    expect(bunweb.routesByMethod[Method.Put].match("/skip")).toBeUndefined();
   });
 });
