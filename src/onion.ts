@@ -1,11 +1,27 @@
 import type { Context, Middleware, Next } from "./types";
 
+/**
+ * Middleware composer that executes middlewares in onion-like fashion.
+ * Errors are stored in ctx.error and the chain continues, allowing
+ * downstream middleware to handle errors.
+ */
 export class Onion {
+  /** Array of middleware functions to execute */
   middlewares: Middleware[];
+
+  /**
+   * Creates a new Onion instance with the given middlewares.
+   * @param middlewares - Array of middleware functions to compose
+   */
   constructor(middlewares: Middleware[]) {
     this.middlewares = middlewares;
   }
 
+  /**
+   * Executes all middlewares in order, wrapping the context.
+   * Errors are caught and stored in ctx.error instead of being rethrown immediately.
+   * @param ctx - Context object passed through the middleware chain
+   */
   async run(ctx: Context): Promise<void> {
     const dispatch = async (index: number): Promise<void> => {
       // Return if we ran out of middlewares
@@ -40,7 +56,19 @@ export class Onion {
       try {
         await middleware!(ctx, next);
       } catch (err) {
-        throw err;
+        const error = err instanceof Error ? err : new Error(String(err));
+        // Programming errors should still throw (these indicate bugs)
+        const isProgrammingError =
+          error.message === "next() called multiple times" ||
+          error.message.includes("Middleware resolved before downstream");
+        if (isProgrammingError) {
+          throw error;
+        }
+        // Koa-style error handling: store runtime errors in context
+        // This allows downstream middleware to handle the error
+        if (!ctx.error) {
+          ctx.error = error;
+        }
       }
 
       // check that downstream middleware awaits next()

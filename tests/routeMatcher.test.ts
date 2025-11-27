@@ -1,5 +1,9 @@
 import { afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { RouteMatcher, RouteMatcherMode } from "../src/routeMatcher";
+import {
+  RouteMatcher,
+  RouteMatcherMode,
+  type MatchResult,
+} from "../src/routeMatcher";
 import type { Middleware } from "../src/types";
 
 describe("RouteMatcher", () => {
@@ -22,22 +26,40 @@ describe("RouteMatcher", () => {
         matcher.insert("/users", [staticHandler]);
         matcher.insert("/:id", [dynamicHandler]);
 
-        expect(matcher.match("/users")).toEqual([staticHandler]);
-        expect(matcher.match("/123")).toEqual([dynamicHandler]);
+        expect(matcher.match("/users")).toEqual({
+          middlewares: [staticHandler],
+          params: {},
+        });
+        expect(matcher.match("/123")).toEqual({
+          middlewares: [dynamicHandler],
+          params: { id: "123" },
+        });
       });
       it("two segments", () => {
         matcher.insert("/users/profile", [staticHandler]);
         matcher.insert("/users/:id", [dynamicHandler]);
 
-        expect(matcher.match("/users/profile")).toEqual([staticHandler]);
-        expect(matcher.match("/users/123")).toEqual([dynamicHandler]);
+        expect(matcher.match("/users/profile")).toEqual({
+          middlewares: [staticHandler],
+          params: {},
+        });
+        expect(matcher.match("/users/123")).toEqual({
+          middlewares: [dynamicHandler],
+          params: { id: "123" },
+        });
       });
       it("three segment", () => {
         matcher.insert("/users/profile/name", [staticHandler]);
         matcher.insert("/users/:id/name", [dynamicHandler]);
 
-        expect(matcher.match("/users/profile/name")).toEqual([staticHandler]);
-        expect(matcher.match("/users/123/name")).toEqual([dynamicHandler]);
+        expect(matcher.match("/users/profile/name")).toEqual({
+          middlewares: [staticHandler],
+          params: {},
+        });
+        expect(matcher.match("/users/123/name")).toEqual({
+          middlewares: [dynamicHandler],
+          params: { id: "123" },
+        });
       });
     });
 
@@ -53,8 +75,14 @@ describe("RouteMatcher", () => {
       matcher.insert("/users/:id", [c]);
       matcher.insert("/users/:id", [d]);
 
-      expect(matcher.match("/ping")).toEqual([a, b]);
-      expect(matcher.match("/users/1")).toEqual([c, d]);
+      expect(matcher.match("/ping")).toEqual({
+        middlewares: [a, b],
+        params: {},
+      });
+      expect(matcher.match("/users/1")).toEqual({
+        middlewares: [c, d],
+        params: { id: "1" },
+      });
     });
 
     it("prefers earlier registration when dynamic routes have equal specificity", () => {
@@ -65,7 +93,10 @@ describe("RouteMatcher", () => {
       matcher.insert("/post/:id", [first]);
       matcher.insert("/post/:slug", [second]);
 
-      expect(matcher.match("/post/abc")).toEqual([first, second]);
+      expect(matcher.match("/post/abc")).toEqual({
+        middlewares: [first, second],
+        params: { id: "abc" },
+      });
     });
 
     it("prefers earlier registration when dynamic routes have equal specificity (duplicate)", () => {
@@ -76,7 +107,10 @@ describe("RouteMatcher", () => {
       matcher.insert("/post/id", [first]);
       matcher.insert("/post/id", [second]);
 
-      expect(matcher.match("/post/id")).toEqual([first, second]);
+      expect(matcher.match("/post/id")).toEqual({
+        middlewares: [first, second],
+        params: {},
+      });
     });
 
     it("prefers more specific dynamic routes (more static segments)", () => {
@@ -87,8 +121,14 @@ describe("RouteMatcher", () => {
       matcher.insert("/users/:id/orders/:orderId", [specific]);
       matcher.insert("/users/:id/:extra", [generic]);
 
-      expect(matcher.match("/users/5/orders/9")).toEqual([specific]);
-      expect(matcher.match("/users/5/foo")).toEqual([generic]);
+      expect(matcher.match("/users/5/orders/9")).toEqual({
+        middlewares: [specific],
+        params: { id: "5", orderId: "9" },
+      });
+      expect(matcher.match("/users/5/foo")).toEqual({
+        middlewares: [generic],
+        params: { id: "5", extra: "foo" },
+      });
     });
 
     it("falls back to dynamic routes when a static branch has no leaf", () => {
@@ -99,8 +139,14 @@ describe("RouteMatcher", () => {
       matcher.insert("/users/:id", [dynamicHandler]);
       matcher.insert("/users/profile/settings", [deepStatic]);
 
-      expect(matcher.match("/users/profile")).toEqual([dynamicHandler]);
-      expect(matcher.match("/users/profile/settings")).toEqual([deepStatic]);
+      expect(matcher.match("/users/profile")).toEqual({
+        middlewares: [dynamicHandler],
+        params: { id: "profile" },
+      });
+      expect(matcher.match("/users/profile/settings")).toEqual({
+        middlewares: [deepStatic],
+        params: {},
+      });
     });
 
     it("throws for invalid path segments", () => {
@@ -117,7 +163,7 @@ describe("RouteMatcher", () => {
       const handler: Middleware = async (ctx, next) => {};
       matcher.insert("/users/:id", [handler]);
 
-      expect(matcher.match("/unknown")).toBeEmpty();
+      expect(matcher.match("/unknown")).toBeUndefined();
     });
 
     it("prefers dynamic routes over wildcard routes", () => {
@@ -128,8 +174,14 @@ describe("RouteMatcher", () => {
       matcher.insert("/files/:name", [dynamicHandler]);
       matcher.insert("/files/*", [wildcardHandler]);
 
-      expect(matcher.match("/files/readme")).toEqual([dynamicHandler]);
-      expect(matcher.match("/files/readme/nested")).toEqual([wildcardHandler]);
+      expect(matcher.match("/files/readme")).toEqual({
+        middlewares: [dynamicHandler],
+        params: { name: "readme" },
+      });
+      expect(matcher.match("/files/readme/nested")).toEqual({
+        middlewares: [wildcardHandler],
+        params: {},
+      });
     });
 
     it("falls back to wildcard routes when no static or dynamic match exists", () => {
@@ -140,11 +192,18 @@ describe("RouteMatcher", () => {
       matcher.insert("/assets/app.js", [staticHandler]);
       matcher.insert("/assets/*", [wildcardHandler]);
 
-      expect(matcher.match("/assets/app.js")).toEqual([staticHandler]);
-      expect(matcher.match("/assets/missing.png")).toEqual([wildcardHandler]);
-      expect(matcher.match("/assets/images/icon.png")).toEqual([
-        wildcardHandler,
-      ]);
+      expect(matcher.match("/assets/app.js")).toEqual({
+        middlewares: [staticHandler],
+        params: {},
+      });
+      expect(matcher.match("/assets/missing.png")).toEqual({
+        middlewares: [wildcardHandler],
+        params: {},
+      });
+      expect(matcher.match("/assets/images/icon.png")).toEqual({
+        middlewares: [wildcardHandler],
+        params: {},
+      });
     });
 
     it('throws when "*" is not the final segment', () => {
@@ -166,15 +225,24 @@ describe("RouteMatcher", () => {
 
       matcher.insert("/users/:id", [a]);
       matcher.insert("/ping", [b]);
-      expect(matcher.match("/users/1")).toEqual([a]);
-      expect(matcher.match("/ping")).toEqual([b]);
+      expect(matcher.match("/users/1")).toEqual({
+        middlewares: [a],
+        params: { id: "1" },
+      });
+      expect(matcher.match("/ping")).toEqual({
+        middlewares: [b],
+        params: {},
+      });
 
       matcher.clear();
-      expect(matcher.match("/users/1")).toBeEmpty();
-      expect(matcher.match("/ping")).toBeEmpty();
+      expect(matcher.match("/users/1")).toBeUndefined();
+      expect(matcher.match("/ping")).toBeUndefined();
 
       matcher.insert("/users/profile", [c]);
-      expect(matcher.match("/users/profile")).toEqual([c]);
+      expect(matcher.match("/users/profile")).toEqual({
+        middlewares: [c],
+        params: {},
+      });
     });
   });
 });
@@ -197,9 +265,18 @@ describe("RouteMatcher (prefix mode)", () => {
     matcher.insert("/api/users", [users2]);
     matcher.insert("/api/users/:id", [user]);
 
-    expect(matcher.match("/api")).toEqual([api]);
-    expect(matcher.match("/api/users")).toEqual([api, users, users2]);
-    expect(matcher.match("/api/users/123")).toEqual([api, users, users2, user]);
+    expect(matcher.match("/api")).toEqual({
+      middlewares: [api],
+      params: {},
+    });
+    expect(matcher.match("/api/users")).toEqual({
+      middlewares: [api, users, users2],
+      params: {},
+    });
+    expect(matcher.match("/api/users/123")).toEqual({
+      middlewares: [api, users, users2, user],
+      params: { id: "123" },
+    });
   });
 
   it("returns empty when no prefix matches", () => {
@@ -207,6 +284,6 @@ describe("RouteMatcher (prefix mode)", () => {
 
     matcher.insert("/api", [handler]);
 
-    expect(matcher.match("/other")).toBeEmpty();
+      expect(matcher.match("/other")).toBeUndefined();
   });
 });

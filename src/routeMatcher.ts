@@ -23,15 +23,37 @@ export enum RouteMatcherMode {
   Prefix = "prefix",
 }
 
+/**
+ * Result of a route match containing middlewares and extracted parameters.
+ */
+export interface MatchResult {
+  middlewares: Middleware[];
+  params: Record<string, string>;
+}
+
+/**
+ * Route matcher that supports static, dynamic (:param), and wildcard (*) routes.
+ * Can operate in exact or prefix matching mode.
+ */
 export class RouteMatcher {
   private root: Node;
   private mode: RouteMatcherMode;
 
+  /**
+   * Creates a new RouteMatcher instance.
+   * @param mode - Matching mode: "exact" for exact matches, "prefix" for prefix matches
+   */
   constructor(mode: RouteMatcherMode = RouteMatcherMode.Exact) {
     this.root = new Node();
     this.mode = mode;
   }
 
+  /**
+   * Inserts a route path with associated middlewares into the matcher.
+   * @param path - Route path pattern (e.g., "/users/:id", "/files/*")
+   * @param middlewares - Array of middleware functions to execute for this route
+   * @throws Error if path contains invalid segments or wildcard is not last
+   */
   insert(path: string, middlewares: Middleware[]): void {
     const segments = this.splitPath(path);
     let current = this.root;
@@ -67,15 +89,29 @@ export class RouteMatcher {
     current.middlewares.push(...middlewares);
   }
 
-  match(path: string): Middleware[] | undefined {
+  /**
+   * Matches a path against registered routes and returns middlewares with extracted parameters.
+   * @param path - Request path to match (e.g., "/users/123")
+   * @returns Match result with middlewares and params, or undefined if no match
+   */
+  match(path: string): MatchResult | undefined {
     const segments = this.splitPath(path);
     const result =
       this.mode === RouteMatcherMode.Prefix
-        ? this.searchPrefix(this.root, segments, 0, [])
-        : this.searchExact(this.root, segments, 0);
-    return result ? [...result] : result;
+        ? this.searchPrefix(this.root, segments, 0, [], {})
+        : this.searchExact(this.root, segments, 0, {});
+    if (!result) {
+      return undefined;
+    }
+    return {
+      middlewares: [...result.middlewares],
+      params: { ...result.params },
+    };
   }
 
+  /**
+   * Clears all registered routes from the matcher.
+   */
   clear(): void {
     this.root = new Node();
   }
@@ -84,44 +120,51 @@ export class RouteMatcher {
     node: Node,
     segments: string[],
     index: number,
-  ): Middleware[] {
+    params: Record<string, string>,
+  ): MatchResult | undefined {
     if (index >= segments.length) {
       if (node.middlewares.length > 0) {
-        return node.middlewares;
+        return { middlewares: node.middlewares, params };
       }
 
       const wildcardChild = node.children.get(WILDCARD_KEY);
       if (wildcardChild) {
-        return wildcardChild.middlewares;
+        return { middlewares: wildcardChild.middlewares, params };
       }
 
-      return [];
+      return undefined;
     }
 
-    const segment = segments[index];
+    const segment = segments[index]!;
 
-    const staticChild = node.children.get(segment!);
+    const staticChild = node.children.get(segment);
     if (staticChild) {
-      const match = this.searchExact(staticChild, segments, index + 1);
-      if (match.length > 0) {
+      const match = this.searchExact(staticChild, segments, index + 1, params);
+      if (match) {
         return match;
       }
     }
 
     const dynamicChild = node.children.get(DYNAMIC_KEY);
-    if (dynamicChild) {
-      const match = this.searchExact(dynamicChild, segments, index + 1);
-      if (match.length > 0) {
+    if (dynamicChild && dynamicChild.paramName) {
+      const newParams = { ...params, [dynamicChild.paramName]: segment };
+      const match = this.searchExact(
+        dynamicChild,
+        segments,
+        index + 1,
+        newParams,
+      );
+      if (match) {
         return match;
       }
     }
 
     const wildcardChild = node.children.get(WILDCARD_KEY);
     if (wildcardChild) {
-      return wildcardChild.middlewares;
+      return { middlewares: wildcardChild.middlewares, params };
     }
 
-    return [];
+    return undefined;
   }
 
   private splitPath(path: string): string[] {
@@ -133,7 +176,8 @@ export class RouteMatcher {
     segments: string[],
     index: number,
     collected: Middleware[],
-  ): Middleware[] {
+    params: Record<string, string>,
+  ): MatchResult | undefined {
     const nextCollected =
       node.middlewares.length > 0
         ? [...collected, ...node.middlewares]
@@ -142,60 +186,72 @@ export class RouteMatcher {
     if (index >= segments.length) {
       const wildcardChild = node.children.get(WILDCARD_KEY);
       if (wildcardChild) {
-        return [...nextCollected, ...wildcardChild.middlewares];
+        return {
+          middlewares: [...nextCollected, ...wildcardChild.middlewares],
+          params,
+        };
       }
-      return nextCollected;
+      if (nextCollected.length > 0) {
+        return { middlewares: nextCollected, params };
+      }
+      return undefined;
     }
 
-    const segment = segments[index];
+    const segment = segments[index]!;
 
-    const staticChild = node.children.get(segment!);
+    const staticChild = node.children.get(segment);
     if (staticChild) {
       const match = this.searchPrefix(
         staticChild,
         segments,
         index + 1,
         nextCollected,
+        params,
       );
-      if (match.length > 0) {
+      if (match) {
         return match;
       }
     }
 
     const dynamicChild = node.children.get(DYNAMIC_KEY);
     const wildcardChild = node.children.get(WILDCARD_KEY);
-    
-    if (dynamicChild) {
+
+    if (dynamicChild && dynamicChild.paramName) {
+      const newParams = { ...params, [dynamicChild.paramName]: segment };
       const match = this.searchPrefix(
         dynamicChild,
         segments,
         index + 1,
         nextCollected,
+        newParams,
       );
-      if (match.length > 0) {
+      if (match) {
         // Check if there are remaining segments that weren't consumed by the dynamic route
-        // We do this by checking if we're not at the end of segments
         // If wildcard exists and there are remaining segments, prefer wildcard
         const currentSegmentIndex = index + 1;
         const hasRemainingSegments = currentSegmentIndex < segments.length;
         if (hasRemainingSegments && wildcardChild) {
-          // Check if the dynamic route's children can handle the remaining segments
-          // If not, use wildcard
-          const remainingSegments = segments.slice(currentSegmentIndex);
-          // Try to see if dynamic route can match remaining segments by checking its children
-          // For now, if wildcard exists and we have remaining segments, use wildcard
           // This handles the case where /files/:id matches /files/123 but /files/123/nested should match /files/*
-          return [...nextCollected, ...wildcardChild.middlewares];
+          return {
+            middlewares: [...nextCollected, ...wildcardChild.middlewares],
+            params,
+          };
         }
         return match;
       }
     }
 
     if (wildcardChild) {
-      return [...nextCollected, ...wildcardChild.middlewares];
+      return {
+        middlewares: [...nextCollected, ...wildcardChild.middlewares],
+        params,
+      };
     }
 
-    return nextCollected.length > 0 ? nextCollected : [];
+    if (nextCollected.length > 0) {
+      return { middlewares: nextCollected, params };
+    }
+    return undefined;
   }
 
   private parseSegment(segment: string): {

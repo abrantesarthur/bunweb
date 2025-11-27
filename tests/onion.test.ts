@@ -107,4 +107,75 @@ describe("Onion.run", () => {
       "layer1 end",
     ]);
   });
+
+  it("stores errors in context instead of throwing", async () => {
+    const calls: string[] = [];
+    const onion = new Onion([
+      async (ctx, next) => {
+        calls.push("before error");
+        await next();
+        calls.push("after error");
+        if (ctx.error) {
+          calls.push(`error handled: ${ctx.error.message}`);
+        }
+      },
+      async (ctx, next) => {
+        calls.push("throwing middleware");
+        throw new Error("Runtime error");
+      },
+      async () => {
+        calls.push("this should not run");
+      },
+    ]);
+    const ctx = new Context(new Request("http://localhost/test"));
+
+    await onion.run(ctx);
+
+    expect(calls).toEqual([
+      "before error",
+      "throwing middleware",
+      "after error",
+      "error handled: Runtime error",
+    ]);
+    expect(ctx.error).toBeDefined();
+    expect(ctx.error?.message).toBe("Runtime error");
+  });
+
+  it("allows downstream middleware to handle errors", async () => {
+    const calls: string[] = [];
+    const onion = new Onion([
+      async (ctx, next) => {
+        calls.push("handler 1 start");
+        await next();
+        if (ctx.error) {
+          calls.push("handler 1 caught error");
+          ctx.error = undefined; // Clear error
+        }
+        calls.push("handler 1 end");
+      },
+      async (ctx, next) => {
+        calls.push("handler 2 start");
+        await next();
+        calls.push("handler 2 end");
+      },
+      async () => {
+        calls.push("error source");
+        throw new Error("Error occurred");
+      },
+    ]);
+    const ctx = new Context(new Request("http://localhost/test"));
+
+    await onion.run(ctx);
+
+    expect(calls).toEqual([
+      "handler 1 start",
+      "handler 2 start",
+      "error source",
+      "handler 2 end",
+      "handler 1 caught error",
+      "handler 1 end",
+    ]);
+    // Error should be cleared by handler 1
+    expect(ctx.error).toBeUndefined();
+  });
 });

@@ -9,6 +9,21 @@ import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 import { Onion } from "./onion";
 import { serve, type Server } from "bun";
 
+/**
+ * Main Bunweb application class implementing a Koa-like web framework.
+ * Uses singleton pattern - access via Bunweb.getInstance() or server().
+ *
+ * @example
+ * ```typescript
+ * import { server } from "bunweb";
+ *
+ * const app = server();
+ * app.get("/users/:id", async (ctx, next) => {
+ *   ctx.body = { userId: ctx.params.id };
+ * });
+ * app.listen({ port: 3000 });
+ * ```
+ */
 export class Bunweb implements Request {
   private static instance: Bunweb;
   private routeMatchersByMethod: Record<Method, RouteMatcher>;
@@ -22,6 +37,11 @@ export class Bunweb implements Request {
     };
   } // forbid new Bunweb()
 
+  /**
+   * Gets the singleton instance of Bunweb.
+   * Creates a new instance if one doesn't exist.
+   * @returns The Bunweb instance
+   */
   static getInstance(): Bunweb {
     if (!Bunweb.instance) {
       Bunweb.instance = new Bunweb();
@@ -35,16 +55,50 @@ export class Bunweb implements Request {
     }
   }
 
+  /**
+   * Registers a GET route handler.
+   * @param path - Route path pattern
+   * @param middlewares - One or more middleware functions
+   */
   get: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Get, ...middlewares);
+
+  /**
+   * Registers a POST route handler.
+   * @param path - Route path pattern
+   * @param middlewares - One or more middleware functions
+   */
   post: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Post, ...middlewares);
+
+  /**
+   * Registers a PUT route handler.
+   * @param path - Route path pattern
+   * @param middlewares - One or more middleware functions
+   */
   put: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Put, ...middlewares);
-  // FIXME: support use router!
+
+  /**
+   * Registers a middleware that matches all HTTP methods with prefix matching.
+   * Use middlewares are executed before method-specific middlewares.
+   * @param path - Route path pattern (uses prefix matching)
+   * @param middlewares - One or more middleware functions
+   */
   use: RequestHandler = (path, ...middlewares) =>
     this.registerRoute(path, Method.Use, ...middlewares);
 
+  /**
+   * Starts the HTTP server and begins listening for requests.
+   * @param options - Server options
+   * @param options.port - Port number or string to listen on
+   * @returns Bun Server instance
+   *
+   * @example
+   * ```typescript
+   * const server = app.listen({ port: 3000 });
+   * ```
+   */
   listen({ port }: { port: string | number }): Server<undefined> {
     return serve({
       port,
@@ -74,15 +128,18 @@ export class Bunweb implements Request {
               });
           }
 
-          // Gather middlewares
+          // Gather middlewares and extract route parameters
           // 1. Get "use" middlewares (prefix match)
-          const useMiddlewares =
-            this.routeMatchersByMethod[Method.Use].match(path) ?? [];
+          const useMatch = this.routeMatchersByMethod[Method.Use].match(path);
+          const useMiddlewares = useMatch?.middlewares ?? [];
+          const useParams = useMatch?.params ?? {};
 
           // 2. Get method-specific middlewares (exact match)
-          const methodMiddlewares = methodEnum
-            ? this.routeMatchersByMethod[methodEnum].match(path) ?? []
-            : [];
+          const methodMatch = methodEnum
+            ? this.routeMatchersByMethod[methodEnum].match(path)
+            : undefined;
+          const methodMiddlewares = methodMatch?.middlewares ?? [];
+          const methodParams = methodMatch?.params ?? {};
 
           // Combine: use middlewares first, then method-specific
           const allMiddlewares = [...useMiddlewares, ...methodMiddlewares];
@@ -95,11 +152,20 @@ export class Bunweb implements Request {
           // Create context
           const ctx = new Context(request);
 
+          // Use method-specific params if available, otherwise use prefix params
+          // Method-specific params completely replace prefix params when present
+          ctx.params = methodMatch ? methodParams : useParams;
+
           // Compose middlewares using Onion
           const onion = new Onion(allMiddlewares);
 
           // Execute the middleware chain
           await onion.run(ctx);
+
+          // Handle errors - if error exists and status is still 200, set to 500
+          if (ctx.error && ctx.status === 200) {
+            ctx.status = 500;
+          }
 
           // Convert context to Response
           return ctx.toResponse();
@@ -114,6 +180,13 @@ export class Bunweb implements Request {
     });
   }
 
+  /**
+   * Internal method to register a route with the specified method.
+   * @param path - Route path pattern
+   * @param method - HTTP method
+   * @param middlewares - One or more middleware functions
+   * @throws Error if any middleware is not a function
+   */
   private registerRoute = <M extends Middleware = Middleware>(
     path: string,
     method: Method,

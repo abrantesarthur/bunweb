@@ -36,17 +36,16 @@ describe("Bunweb.registerRoute", () => {
 
     bunweb.registerRoute("/flatten", Method.Get, h1, [h2, h3]);
 
-    expect(bunweb.routeMatchersByMethod[Method.Get].match("/flatten")).toEqual([
-      h1,
-      h2,
-      h3,
-    ]);
+    expect(bunweb.routeMatchersByMethod[Method.Get].match("/flatten")).toEqual({
+      middlewares: [h1, h2, h3],
+      params: {},
+    });
     expect(
       bunweb.routeMatchersByMethod[Method.Post].match("/flatten"),
-    ).toBeEmpty();
+    ).toBeUndefined();
     expect(
       bunweb.routeMatchersByMethod[Method.Put].match("/flatten"),
-    ).toBeEmpty();
+    ).toBeUndefined();
   });
 
   it("throws when a middleware array contains a non-function entry", () => {
@@ -56,7 +55,9 @@ describe("Bunweb.registerRoute", () => {
       bunweb.registerRoute("/bad", Method.Post, [handler, "oops" as unknown]),
     ).toThrow('The path "/bad" contains a non-functional "post" handler.');
 
-    expect(bunweb.routeMatchersByMethod[Method.Post].match("/bad")).toBeEmpty();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Post].match("/bad"),
+    ).toBeUndefined();
   });
 
   it("throws when non-function middleware arguments are provided outside arrays", () => {
@@ -66,7 +67,9 @@ describe("Bunweb.registerRoute", () => {
       bunweb.registerRoute("/skip", Method.Put, handler, null),
     ).toThrow('The path "/skip" contains a non-functional "put" handler.');
 
-    expect(bunweb.routeMatchersByMethod[Method.Put].match("/skip")).toBeEmpty();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Put].match("/skip"),
+    ).toBeUndefined();
   });
 });
 
@@ -335,5 +338,173 @@ describe("Bunweb.listen", () => {
     );
     expect(wildcardResponse.status).toBe(200);
     expect(calls).toEqual(["wildcard"]);
+  });
+
+  it("extracts route parameters and makes them available in context", async () => {
+    let capturedParams: Record<string, string> = {};
+    const handler: Middleware = async (ctx, next) => {
+      capturedParams = ctx.params;
+      ctx.body = { params: ctx.params };
+      await next();
+    };
+
+    app.get("/users/:id", handler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/users/123`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(200);
+    expect(capturedParams).toEqual({ id: "123" });
+    const json = await response.json();
+    expect(json).toEqual({ params: { id: "123" } });
+  });
+
+  it("extracts multiple route parameters", async () => {
+    let capturedParams: Record<string, string> = {};
+    const handler: Middleware = async (ctx, next) => {
+      capturedParams = ctx.params;
+      ctx.body = ctx.params;
+      await next();
+    };
+
+    app.get("/users/:userId/posts/:postId", handler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(
+      `http://localhost:${port}/users/123/posts/456`,
+      { method: "GET" },
+    );
+    expect(response.status).toBe(200);
+    expect(capturedParams).toEqual({ userId: "123", postId: "456" });
+    const json = await response.json();
+    expect(json).toEqual({ userId: "123", postId: "456" });
+  });
+
+  it("method-specific route parameters override prefix route parameters", async () => {
+    let capturedParams: Record<string, string> = {};
+    const useHandler: Middleware = async (ctx, next) => {
+      await next();
+    };
+    const getHandler: Middleware = async (ctx, next) => {
+      capturedParams = ctx.params;
+      ctx.body = ctx.params;
+      await next();
+    };
+
+    app.use("/users/:id", useHandler);
+    app.get("/users/:userId", getHandler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/users/123`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(200);
+    // Method-specific params should override prefix params
+    expect(capturedParams).toEqual({ userId: "123" });
+  });
+
+  it("provides base URL properties in context", async () => {
+    let capturedContext: any = {};
+    const handler: Middleware = async (ctx, next) => {
+      capturedContext = {
+        origin: ctx.origin,
+        host: ctx.host,
+        hostname: ctx.hostname,
+        protocol: ctx.protocol,
+      };
+      ctx.body = capturedContext;
+      await next();
+    };
+
+    app.get("/test", handler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(200);
+    expect(capturedContext.origin).toBe(`http://localhost:${port}`);
+    expect(capturedContext.host).toBe(`localhost:${port}`);
+    expect(capturedContext.hostname).toBe("localhost");
+    expect(capturedContext.protocol).toBe("http:");
+  });
+
+  it("handles errors in middleware and stores them in context", async () => {
+    const errorHandler: Middleware = async (ctx, next) => {
+      await next();
+      if (ctx.error) {
+        ctx.status = 500;
+        ctx.body = { error: ctx.error.message };
+      }
+    };
+    const failingMiddleware: Middleware = async (ctx, next) => {
+      throw new Error("Something went wrong");
+    };
+
+    app.use("/error", errorHandler);
+    app.get("/error", failingMiddleware);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/error`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(500);
+    const json = await response.json();
+    expect(json).toEqual({ error: "Something went wrong" });
+  });
+
+  it("handles Error objects in response body", async () => {
+    const handler: Middleware = async (ctx, next) => {
+      ctx.body = new Error("Test error");
+      ctx.status = 500;
+      await next();
+    };
+
+    app.get("/error-body", handler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/error-body`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(500);
+    const json = (await response.json()) as { error: string; stack?: string };
+    expect(json).toHaveProperty("error");
+    expect(json.error).toBe("Test error");
+    expect(json).toHaveProperty("stack");
+  });
+
+  it("allows setting custom headers in context", async () => {
+    const handler: Middleware = async (ctx, next) => {
+      ctx.headers["X-Custom-Header"] = "custom-value";
+      ctx.headers["X-Another-Header"] = "another-value";
+      ctx.body = "test";
+      await next();
+    };
+
+    app.get("/headers", handler);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const response = await fetch(`http://localhost:${port}/headers`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(200);
+    expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
+    expect(response.headers.get("X-Another-Header")).toBe("another-value");
+    expect(response.headers.get("Content-Type")).toBe("text/plain");
   });
 });
