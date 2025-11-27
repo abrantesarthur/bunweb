@@ -8,35 +8,31 @@ const WILDCARD_KEY = "*";
 
 export class Node {
   children: Map<string, Node>;
-  exactMiddlewares: Middleware[];
-  prefixMiddlewares: Middleware[];
+  middlewares: Middleware[];
   isDynamic?: boolean;
   paramName?: string;
 
   constructor() {
     this.children = new Map();
-    this.exactMiddlewares = [];
-    this.prefixMiddlewares = [];
+    this.middlewares = [];
   }
 }
 
-enum MiddlewareKind {
+enum RouteMatcherMode {
   Exact = "exact",
   Prefix = "prefix",
 }
 
 export class RouteMatcher {
   private root: Node;
+  private mode: RouteMatcherMode;
 
-  constructor() {
+  constructor(mode: RouteMatcherMode = RouteMatcherMode.Exact) {
     this.root = new Node();
+    this.mode = mode;
   }
 
-  insert(
-    path: string,
-    middlewares: Middleware[],
-    middlewareKind: MiddlewareKind = MiddlewareKind.Exact,
-  ): void {
+  insert(path: string, middlewares: Middleware[]): void {
     const segments = this.splitPath(path);
     let current = this.root;
 
@@ -68,10 +64,7 @@ export class RouteMatcher {
     }
 
     // append middlewares in the leaf node
-    (middlewareKind === MiddlewareKind.Exact
-      ? current.exactMiddlewares
-      : current.prefixMiddlewares
-    ).push(...middlewares);
+    current.middlewares.push(...middlewares);
   }
 
   match(path: string): Middleware[] | undefined {
@@ -84,16 +77,15 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
-  // FIXME: implement searchPrefix or modify search to accept kind
   private search(node: Node, segments: string[], index: number): Middleware[] {
     if (index >= segments.length) {
-      if (node.exactMiddlewares.length > 0) {
-        return node.exactMiddlewares;
+      if (node.middlewares.length > 0) {
+        return node.middlewares;
       }
 
       const wildcardChild = node.children.get(WILDCARD_KEY);
       if (wildcardChild) {
-        return wildcardChild.exactMiddlewares;
+        return wildcardChild.middlewares;
       }
 
       return [];
@@ -119,7 +111,7 @@ export class RouteMatcher {
 
     const wildcardChild = node.children.get(WILDCARD_KEY);
     if (wildcardChild) {
-      return wildcardChild.exactMiddlewares;
+      return wildcardChild.middlewares;
     }
 
     return [];
