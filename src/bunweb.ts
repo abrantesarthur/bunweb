@@ -8,13 +8,17 @@ import { RouteMatcher } from "./routeMatcher";
 
 export class Bunweb implements Request {
   private static instance: Bunweb;
-  private routesByMethod: Record<Method, RouteMatcher> = {
-    [Method.Get]: new RouteMatcher(),
-    [Method.Post]: new RouteMatcher(),
-    [Method.Put]: new RouteMatcher(),
-  };
+  private routeMatchersByMethod: Record<Method, RouteMatcher>;
+  private useMatcher: RouteMatcher;
 
-  private constructor() {} // forbid new Bunweb()
+  private constructor() {
+    this.routeMatchersByMethod = {
+      [Method.Get]: new RouteMatcher(),
+      [Method.Post]: new RouteMatcher(),
+      [Method.Put]: new RouteMatcher(),
+    };
+    this.useMatcher = new RouteMatcher();
+  } // forbid new Bunweb()
 
   static getInstance(): Bunweb {
     if (!Bunweb.instance) {
@@ -60,7 +64,7 @@ export class Bunweb implements Request {
       return acc;
     }, []);
 
-    this.routesByMethod[method].insert(path, flatMiddlewares);
+    this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
   };
 }
 

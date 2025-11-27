@@ -10,7 +10,7 @@ type BunwebInternal = {
     method: Method,
     ...middlewares: (Middleware | Middleware[] | unknown)[]
   ) => void;
-  routesByMethod: Record<Method, RouteMatcher>;
+  routeMatchersByMethod: Record<Method, RouteMatcher>;
 };
 
 describe("Bunweb.registerRoute", () => {
@@ -18,7 +18,7 @@ describe("Bunweb.registerRoute", () => {
 
   beforeEach(() => {
     for (const method of [Method.Get, Method.Post, Method.Put]) {
-      bunweb.routesByMethod[method] = new RouteMatcher();
+      bunweb.routeMatchersByMethod[method] = new RouteMatcher();
     }
   });
 
@@ -29,13 +29,17 @@ describe("Bunweb.registerRoute", () => {
 
     bunweb.registerRoute("/flatten", Method.Get, h1, [h2, h3]);
 
-    expect(bunweb.routesByMethod[Method.Get].match("/flatten")).toEqual([
+    expect(bunweb.routeMatchersByMethod[Method.Get].match("/flatten")).toEqual([
       h1,
       h2,
       h3,
     ]);
-    expect(bunweb.routesByMethod[Method.Post].match("/flatten")).toBeEmpty();
-    expect(bunweb.routesByMethod[Method.Put].match("/flatten")).toBeEmpty();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Post].match("/flatten"),
+    ).toBeEmpty();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Put].match("/flatten"),
+    ).toBeEmpty();
   });
 
   it("throws when a middleware array contains a non-function entry", () => {
@@ -45,7 +49,7 @@ describe("Bunweb.registerRoute", () => {
       bunweb.registerRoute("/bad", Method.Post, [handler, "oops" as unknown]),
     ).toThrow('The path "/bad" contains a non-functional "post" handler.');
 
-    expect(bunweb.routesByMethod[Method.Post].match("/bad")).toBeEmpty();
+    expect(bunweb.routeMatchersByMethod[Method.Post].match("/bad")).toBeEmpty();
   });
 
   it("throws when non-function middleware arguments are provided outside arrays", () => {
@@ -55,6 +59,6 @@ describe("Bunweb.registerRoute", () => {
       bunweb.registerRoute("/skip", Method.Put, handler, null),
     ).toThrow('The path "/skip" contains a non-functional "put" handler.');
 
-    expect(bunweb.routesByMethod[Method.Put].match("/skip")).toBeEmpty();
+    expect(bunweb.routeMatchersByMethod[Method.Put].match("/skip")).toBeEmpty();
   });
 });
