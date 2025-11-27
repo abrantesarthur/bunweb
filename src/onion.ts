@@ -1,4 +1,4 @@
-import type { Middleware, Next } from "./types";
+import type { Context, Middleware, Next } from "./types";
 
 export class Onion {
   middlewares: Middleware[];
@@ -6,7 +6,7 @@ export class Onion {
     this.middlewares = middlewares;
   }
 
-  async run(): Promise<void> {
+  async run(ctx: Context): Promise<void> {
     const dispatch = async (index: number): Promise<void> => {
       // Return if we ran out of middlewares
       if (index >= this.middlewares.length || index < 0) {
@@ -38,7 +38,7 @@ export class Onion {
 
       // Execute the current middleware
       try {
-        await middleware!(next);
+        await middleware!(ctx, next);
       } catch (err) {
         throw err;
       }

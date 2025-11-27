@@ -1,26 +1,27 @@
 import { describe, expect, it } from "bun:test";
 import { Onion } from "../src/onion";
-import type { Middleware, Next } from "../src/types";
+import { Context, type Middleware } from "../src/types";
 
 describe("Onion.run", () => {
   it("awaits middlewares in onion order when each awaits next", async () => {
     const calls: string[] = [];
-    const m1: Middleware = async (next) => {
+    const m1: Middleware = async (ctx, next) => {
       calls.push("m1 before");
       await next?.();
       calls.push("m1 after");
     };
-    const m2: Middleware = async (next) => {
+    const m2: Middleware = async (ctx, next) => {
       calls.push("m2 before");
       await next?.();
       calls.push("m2 after");
     };
-    const m3: Middleware = async (next) => {
+    const m3: Middleware = async (ctx, next) => {
       calls.push("m3");
     };
     const onion = new Onion([m1, m2, m3]);
+    const ctx = new Context(new Request("http://localhost/test"));
 
-    await onion.run();
+    await onion.run(ctx);
 
     expect(calls).toEqual([
       "m1 before",
@@ -40,33 +41,36 @@ describe("Onion.run", () => {
       calls.push("skipped");
     };
     const onion = new Onion([m1, m2]);
+    const ctx = new Context(new Request("http://localhost/test"));
 
-    await onion.run();
+    await onion.run(ctx);
 
     expect(calls).toEqual(["stop"]);
   });
 
   it("throws when a middleware calls next more than once", async () => {
     const onion = new Onion([
-      async (next) => {
+      async (ctx, next) => {
         await next();
         await next();
       },
       async () => {},
     ]);
+    const ctx = new Context(new Request("http://localhost/test"));
 
-    await expect(onion.run()).rejects.toThrow("next() called multiple times");
+    await expect(onion.run(ctx)).rejects.toThrow("next() called multiple times");
   });
 
   it("throws when next is not awaited", async () => {
     const onion = new Onion([
-      async (next) => {
+      async (ctx, next) => {
         next();
       },
       async () => {},
     ]);
+    const ctx = new Context(new Request("http://localhost/test"));
 
-    expect(onion.run()).rejects.toThrow(
+    expect(onion.run(ctx)).rejects.toThrow(
       "Middleware resolved before downstream. You are probably missing an await or return.",
     );
   });
@@ -74,12 +78,12 @@ describe("Onion.run", () => {
   it("lets upstream await downstream completion", async () => {
     const calls: string[] = [];
     const onion = new Onion([
-      async (next) => {
+      async (ctx, next) => {
         calls.push("layer1 start");
         await next();
         calls.push("layer1 end");
       },
-      async (next) => {
+      async (ctx, next) => {
         calls.push("layer2 start");
         await next();
         calls.push("layer2 after-next");
@@ -90,8 +94,9 @@ describe("Onion.run", () => {
         calls.push("layer3 end");
       },
     ]);
+    const ctx = new Context(new Request("http://localhost/test"));
 
-    await onion.run();
+    await onion.run(ctx);
 
     expect(calls).toEqual([
       "layer1 start",

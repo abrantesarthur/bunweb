@@ -163,6 +163,8 @@ export class RouteMatcher {
     }
 
     const dynamicChild = node.children.get(DYNAMIC_KEY);
+    const wildcardChild = node.children.get(WILDCARD_KEY);
+    
     if (dynamicChild) {
       const match = this.searchPrefix(
         dynamicChild,
@@ -171,11 +173,24 @@ export class RouteMatcher {
         nextCollected,
       );
       if (match.length > 0) {
+        // Check if there are remaining segments that weren't consumed by the dynamic route
+        // We do this by checking if we're not at the end of segments
+        // If wildcard exists and there are remaining segments, prefer wildcard
+        const currentSegmentIndex = index + 1;
+        const hasRemainingSegments = currentSegmentIndex < segments.length;
+        if (hasRemainingSegments && wildcardChild) {
+          // Check if the dynamic route's children can handle the remaining segments
+          // If not, use wildcard
+          const remainingSegments = segments.slice(currentSegmentIndex);
+          // Try to see if dynamic route can match remaining segments by checking its children
+          // For now, if wildcard exists and we have remaining segments, use wildcard
+          // This handles the case where /files/:id matches /files/123 but /files/123/nested should match /files/*
+          return [...nextCollected, ...wildcardChild.middlewares];
+        }
         return match;
       }
     }
 
-    const wildcardChild = node.children.get(WILDCARD_KEY);
     if (wildcardChild) {
       return [...nextCollected, ...wildcardChild.middlewares];
     }

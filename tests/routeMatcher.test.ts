@@ -10,8 +10,8 @@ describe("RouteMatcher", () => {
       let dynamicHandler: Middleware;
 
       beforeAll(() => {
-        staticHandler = async () => {};
-        dynamicHandler = async () => {};
+        staticHandler = async (ctx, next) => {};
+        dynamicHandler = async (ctx, next) => {};
       });
 
       afterEach(() => {
@@ -43,10 +43,10 @@ describe("RouteMatcher", () => {
 
     it("appends duplicate static and dynamic route handlers in registration order", () => {
       const matcher = new RouteMatcher();
-      const a: Middleware = async () => {};
-      const b: Middleware = async () => {};
-      const c: Middleware = async () => {};
-      const d: Middleware = async () => {};
+      const a: Middleware = async (ctx, next) => {};
+      const b: Middleware = async (ctx, next) => {};
+      const c: Middleware = async (ctx, next) => {};
+      const d: Middleware = async (ctx, next) => {};
 
       matcher.insert("/ping", [a]);
       matcher.insert("/ping", [b]);
@@ -59,8 +59,8 @@ describe("RouteMatcher", () => {
 
     it("prefers earlier registration when dynamic routes have equal specificity", () => {
       const matcher = new RouteMatcher();
-      const first: Middleware = async () => {};
-      const second: Middleware = async () => {};
+      const first: Middleware = async (ctx, next) => {};
+      const second: Middleware = async (ctx, next) => {};
 
       matcher.insert("/post/:id", [first]);
       matcher.insert("/post/:slug", [second]);
@@ -68,10 +68,10 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/post/abc")).toEqual([first, second]);
     });
 
-    it("prefers earlier registration when dynamic routes have equal specificity", () => {
+    it("prefers earlier registration when dynamic routes have equal specificity (duplicate)", () => {
       const matcher = new RouteMatcher();
-      const first: Middleware = async () => {};
-      const second: Middleware = async () => {};
+      const first: Middleware = async (ctx, next) => {};
+      const second: Middleware = async (ctx, next) => {};
 
       matcher.insert("/post/id", [first]);
       matcher.insert("/post/id", [second]);
@@ -81,8 +81,8 @@ describe("RouteMatcher", () => {
 
     it("prefers more specific dynamic routes (more static segments)", () => {
       const matcher = new RouteMatcher();
-      const specific: Middleware = async () => {};
-      const generic: Middleware = async () => {};
+      const specific: Middleware = async (ctx, next) => {};
+      const generic: Middleware = async (ctx, next) => {};
 
       matcher.insert("/users/:id/orders/:orderId", [specific]);
       matcher.insert("/users/:id/:extra", [generic]);
@@ -93,8 +93,8 @@ describe("RouteMatcher", () => {
 
     it("falls back to dynamic routes when a static branch has no leaf", () => {
       const matcher = new RouteMatcher();
-      const dynamicHandler: Middleware = async () => {};
-      const deepStatic: Middleware = async () => {};
+      const dynamicHandler: Middleware = async (ctx, next) => {};
+      const deepStatic: Middleware = async (ctx, next) => {};
 
       matcher.insert("/users/:id", [dynamicHandler]);
       matcher.insert("/users/profile/settings", [deepStatic]);
@@ -105,7 +105,7 @@ describe("RouteMatcher", () => {
 
     it("throws for invalid path segments", () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async () => {};
+      const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/users/bad*", [handler])).toThrow(
         'Invalid route segment: "bad*"',
@@ -114,7 +114,7 @@ describe("RouteMatcher", () => {
 
     it("returns undefined when no routes match", () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async () => {};
+      const handler: Middleware = async (ctx, next) => {};
       matcher.insert("/users/:id", [handler]);
 
       expect(matcher.match("/unknown")).toBeEmpty();
@@ -122,8 +122,8 @@ describe("RouteMatcher", () => {
 
     it("prefers dynamic routes over wildcard routes", () => {
       const matcher = new RouteMatcher();
-      const dynamicHandler: Middleware = async () => {};
-      const wildcardHandler: Middleware = async () => {};
+      const dynamicHandler: Middleware = async (ctx, next) => {};
+      const wildcardHandler: Middleware = async (ctx, next) => {};
 
       matcher.insert("/files/:name", [dynamicHandler]);
       matcher.insert("/files/*", [wildcardHandler]);
@@ -134,8 +134,8 @@ describe("RouteMatcher", () => {
 
     it("falls back to wildcard routes when no static or dynamic match exists", () => {
       const matcher = new RouteMatcher();
-      const staticHandler: Middleware = async () => {};
-      const wildcardHandler: Middleware = async () => {};
+      const staticHandler: Middleware = async (ctx, next) => {};
+      const wildcardHandler: Middleware = async (ctx, next) => {};
 
       matcher.insert("/assets/app.js", [staticHandler]);
       matcher.insert("/assets/*", [wildcardHandler]);
@@ -149,7 +149,7 @@ describe("RouteMatcher", () => {
 
     it('throws when "*" is not the final segment', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async () => {};
+      const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/oops/*/tail", [handler])).toThrow(
         'Wildcard "*" must be the last segment in a route path.',
@@ -160,9 +160,9 @@ describe("RouteMatcher", () => {
   describe("clear()", () => {
     it("clears all registered routes", () => {
       const matcher = new RouteMatcher();
-      const a: Middleware = async () => {};
-      const b: Middleware = async () => {};
-      const c: Middleware = async () => {};
+      const a: Middleware = async (ctx, next) => {};
+      const b: Middleware = async (ctx, next) => {};
+      const c: Middleware = async (ctx, next) => {};
 
       matcher.insert("/users/:id", [a]);
       matcher.insert("/ping", [b]);
@@ -187,10 +187,10 @@ describe("RouteMatcher (prefix mode)", () => {
   });
 
   it("accumulates prefix middlewares along the matched path", () => {
-    const api: Middleware = async () => {};
-    const users: Middleware = async () => {};
-    const users2: Middleware = async () => {};
-    const user: Middleware = async () => {};
+    const api: Middleware = async (ctx, next) => {};
+    const users: Middleware = async (ctx, next) => {};
+    const users2: Middleware = async (ctx, next) => {};
+    const user: Middleware = async (ctx, next) => {};
 
     matcher.insert("/api", [api]);
     matcher.insert("/api/users", [users]);
@@ -203,7 +203,7 @@ describe("RouteMatcher (prefix mode)", () => {
   });
 
   it("returns empty when no prefix matches", () => {
-    const handler: Middleware = async () => {};
+    const handler: Middleware = async (ctx, next) => {};
 
     matcher.insert("/api", [handler]);
 
