@@ -65,47 +65,6 @@ export class Bunweb implements Request {
 }
 
 /**
-RULES
-Dynamic routes with equal specificity fall back to registration order.
-Example:
-/post/:id (registered first)
-/post/:slug (registered second)
-Request: /post/abc → matches the first one registered.
-
-Duplicate static routes append all middlewares (order preserved).
-Example:
-router.get("/ping", A);
-router.get("/ping", B);
-Request: /ping → executes A then B.
-
-Duplicate dynamic routes also append all middlewares.
-Example:
-router.get("/users/:id", A);
-router.get("/users/:id", B);
-Request: /users/10 → executes A then B.
-
-Wildcards only match if no static or dynamic route matches.
-Example:
-/assets/app.js
-/assets/*
-Request: /assets/app.js → matches static, not wildcard.
-Request: /assets/missing.png → matches wildcard.
-
-If multiple routes match the same request, all matching handlers run in registration order.
-Example:
-router.get("/users", A);
-router.get("/users", B);
-
-Request: /users → runs A, then B.
-
-Parameter names do not affect matching; only pattern specificity and order matter.
-Example:
-/item/:id
-/item/:slug
-Both patterns are identical → whichever was registered first wins.
-
-
-
  * FIXMES
  * - Routing properties and differences between .use() and .get/post/put() to do!
  *    1. .use runs for all methods.
