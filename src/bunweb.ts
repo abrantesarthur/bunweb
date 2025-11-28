@@ -1,7 +1,7 @@
 import {
+  HttpErrorMessage,
   Method,
   type BaseMiddleware,
-  type Middleware,
   type Request,
   type RequestHandler,
 } from "./types";
@@ -9,6 +9,7 @@ import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 import { Onion } from "./onion";
 import { serve, type Server } from "bun";
 import { Context } from "./context";
+import { getHttpErrorResponse } from "./helpers";
 
 /**
  * Main Bunweb application class implementing a Koa-like web framework.
@@ -116,9 +117,16 @@ export class Bunweb implements Request {
    * const server = app.listen({ port: 3000 });
    * ```
    */
-  listen({ port }: { port: string | number }): Server<undefined> {
+  listen({
+    port,
+    hostname,
+  }: {
+    port: string | number;
+    hostname?: string;
+  }): Server<undefined> {
     return serve({
       port,
+      hostname,
       fetch: async (request: globalThis.Request) => {
         try {
           // Extract method and path from request
@@ -128,6 +136,7 @@ export class Bunweb implements Request {
 
           // Map HTTP method to Method enum
           let methodEnum: Method;
+          // FIXME: support more methods
           switch (method) {
             case "get":
               methodEnum = Method.Get;
@@ -139,10 +148,7 @@ export class Bunweb implements Request {
               methodEnum = Method.Put;
               break;
             default:
-              // Unsupported method
-              return new globalThis.Response("Method Not Allowed", {
-                status: 405,
-              });
+              return getHttpErrorResponse(HttpErrorMessage.NotAllowed);
           }
 
           // Gather middlewares and extract route parameters
@@ -157,19 +163,16 @@ export class Bunweb implements Request {
           const methodMiddlewares = methodMatch?.middlewares ?? [];
           const methodParams = methodMatch?.params ?? {};
 
-          // If no middlewares matched, return 404
+          // If no middlewares matched, return Not Found error
           if (useMiddlewares.length === 0 && methodMiddlewares.length === 0) {
-            return new globalThis.Response("Not Found", { status: 404 });
+            return getHttpErrorResponse(HttpErrorMessage.NotFound);
           }
 
-          // Create context
-          const ctx = new Context(request);
-
-          // Use method-specific params if available, otherwise use prefix params
           // Method-specific params completely replace prefix params when present
+          const ctx = new Context(request);
           ctx.params = methodMatch ? methodParams : useParams;
 
-          // Compose middlewares using Onion (it will flatten the arrays internally)
+          // Compose middlewares using Onion
           const onion = new Onion([useMiddlewares, methodMiddlewares]);
 
           // Execute the middleware chain

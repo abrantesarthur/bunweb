@@ -42,14 +42,15 @@ export class Context {
    * @param request - The HTTP request object
    */
   constructor(request: globalThis.Request) {
+    const { method, url } = request;
+    const { pathname, origin, host, hostname, protocol } = new URL(url);
     this.request = request;
-    this.method = request.method.toLowerCase();
-    const url = new URL(request.url);
-    this.path = url.pathname;
-    this.origin = url.origin;
-    this.host = url.host;
-    this.hostname = url.hostname;
-    this.protocol = url.protocol;
+    this.method = method.toLowerCase();
+    this.path = pathname;
+    this.origin = origin;
+    this.host = host;
+    this.hostname = hostname;
+    this.protocol = protocol;
   }
 
   /**

@@ -6,7 +6,7 @@ const DYNAMIC_KEY = ":";
 const WILDCARD_SEGMENT = "*";
 const WILDCARD_KEY = "*";
 
-export class Node {
+class Node {
   children: Map<string, Node>;
   middlewares: BaseMiddleware[];
   isDynamic?: boolean;
@@ -116,17 +116,35 @@ export class RouteMatcher {
     this.root = new Node();
   }
 
+  /**
+   * Recursively searches the route tree for an exact match.
+   * An exact match requires that all path segments are consumed and a route with middlewares is found.
+   *
+   * Search strategy (tried in order):
+   * 1. Static segment match - matches exact segment name (e.g., "users" matches "users")
+   * 2. Dynamic segment match - matches any segment and captures it as a parameter (e.g., ":id" matches "123")
+   * 3. Wildcard match - matches any remaining segments (e.g., "*" matches everything)
+   *
+   * @param node - Current node in the route tree
+   * @param segments - Path segments to match (e.g., ["users", "123"])
+   * @param index - Current segment index being processed
+   * @param params - Accumulated route parameters from dynamic segments
+   * @returns Match result with middlewares and params if exact match found, undefined otherwise
+   */
   private searchExact(
     node: Node,
     segments: string[],
     index: number,
     params: Record<string, string>,
   ): MatchResult | undefined {
+    // Base case: all segments consumed
     if (index >= segments.length) {
+      // Check if current node has middlewares (exact route match)
       if (node.middlewares.length > 0) {
         return { middlewares: node.middlewares, params };
       }
 
+      // Check for wildcard route (matches empty remaining path)
       const wildcardChild = node.children.get(WILDCARD_KEY);
       if (wildcardChild) {
         return { middlewares: wildcardChild.middlewares, params };
@@ -137,6 +155,7 @@ export class RouteMatcher {
 
     const segment = segments[index]!;
 
+    // Try static segment match first (most specific)
     const staticChild = node.children.get(segment);
     if (staticChild) {
       const match = this.searchExact(staticChild, segments, index + 1, params);
@@ -145,6 +164,7 @@ export class RouteMatcher {
       }
     }
 
+    // Try dynamic segment match (e.g., :id matches any value)
     const dynamicChild = node.children.get(DYNAMIC_KEY);
     if (dynamicChild && dynamicChild.paramName) {
       const newParams = { ...params, [dynamicChild.paramName]: segment };
@@ -159,6 +179,7 @@ export class RouteMatcher {
       }
     }
 
+    // Try wildcard match (matches remaining segments)
     const wildcardChild = node.children.get(WILDCARD_KEY);
     if (wildcardChild) {
       return { middlewares: wildcardChild.middlewares, params };
@@ -171,6 +192,25 @@ export class RouteMatcher {
     return path.split("/").filter(Boolean);
   }
 
+  /**
+   * Recursively searches the route tree for a prefix match.
+   * A prefix match succeeds if middlewares are found at any point during traversal,
+   * even if not all path segments are consumed. This allows matching "/users" when
+   * searching for "/users/123".
+   *
+   * Search strategy (tried in order):
+   * 1. Static segment match - matches exact segment name
+   * 2. Dynamic segment match - matches any segment and captures it as a parameter
+   * 3. Wildcard match - matches any remaining segments (with special handling for remaining segments)
+   * 4. Return collected middlewares if any were found (prefix match success)
+   *
+   * @param node - Current node in the route tree
+   * @param segments - Path segments to match (e.g., ["users", "123"])
+   * @param index - Current segment index being processed
+   * @param collected - Accumulated middlewares from matched route prefixes
+   * @param params - Accumulated route parameters from dynamic segments
+   * @returns Match result with collected middlewares and params if prefix match found, undefined otherwise
+   */
   private searchPrefix(
     node: Node,
     segments: string[],
@@ -178,12 +218,15 @@ export class RouteMatcher {
     collected: BaseMiddleware[],
     params: Record<string, string>,
   ): MatchResult | undefined {
+    // Collect middlewares from current node (prefix matching collects as we traverse)
     const nextCollected =
       node.middlewares.length > 0
         ? [...collected, ...node.middlewares]
         : collected;
 
+    // Base case: all segments consumed
     if (index >= segments.length) {
+      // Check for wildcard route at the end
       const wildcardChild = node.children.get(WILDCARD_KEY);
       if (wildcardChild) {
         return {
@@ -191,6 +234,7 @@ export class RouteMatcher {
           params,
         };
       }
+      // Return collected middlewares if any were found (prefix match success)
       if (nextCollected.length > 0) {
         return { middlewares: nextCollected, params };
       }
@@ -199,6 +243,7 @@ export class RouteMatcher {
 
     const segment = segments[index]!;
 
+    // Try static segment match first (most specific)
     const staticChild = node.children.get(segment);
     if (staticChild) {
       const match = this.searchPrefix(
@@ -216,6 +261,7 @@ export class RouteMatcher {
     const dynamicChild = node.children.get(DYNAMIC_KEY);
     const wildcardChild = node.children.get(WILDCARD_KEY);
 
+    // Try dynamic segment match (e.g., :id matches any value)
     if (dynamicChild && dynamicChild.paramName) {
       const newParams = { ...params, [dynamicChild.paramName]: segment };
       const match = this.searchPrefix(
@@ -241,6 +287,7 @@ export class RouteMatcher {
       }
     }
 
+    // Try wildcard match (matches remaining segments)
     if (wildcardChild) {
       return {
         middlewares: [...nextCollected, ...wildcardChild.middlewares],
@@ -248,6 +295,8 @@ export class RouteMatcher {
       };
     }
 
+    // Prefix match: return collected middlewares if any were found
+    // This allows matching "/users" when searching for "/users/123"
     if (nextCollected.length > 0) {
       return { middlewares: nextCollected, params };
     }

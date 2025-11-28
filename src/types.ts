@@ -16,12 +16,6 @@ export type ExtractParams<P extends string> =
     : {};
 
 /**
- * A function that calls the next middleware in the chain.
- * Must be awaited to ensure proper middleware execution order.
- */
-export type Next = () => Promise<void>;
-
-/**
  * Context with typed route parameters.
  */
 export type TypedContext<
@@ -29,6 +23,12 @@ export type TypedContext<
 > = Omit<Context, "params"> & {
   params: Params;
 };
+
+/**
+ * A function that calls the next middleware in the chain.
+ * Must be awaited to ensure proper middleware execution order.
+ */
+export type Next = () => Promise<void>;
 
 /**
  * Base middleware type that accepts any Context.
@@ -45,7 +45,7 @@ export type BaseMiddleware = (ctx: Context, next: Next) => Promise<void>;
  */
 export type Middleware<
   Params extends Record<string, string> = Record<string, string>,
-> = (ctx: TypedContext<Params> & Context, next: Next) => Promise<void>;
+> = (ctx: TypedContext<Params>, next: Next) => Promise<void>;
 
 /**
  * HTTP methods supported by Bunweb.
@@ -88,4 +88,12 @@ export interface Request {
 export interface RouteDefinition {
   path: string;
   middlewares: Middleware[];
+}
+
+export enum HttpErrorMessage {
+  InternalServerError = "Internal Server Error",
+  Forbidden = "Forbidden",
+  NotFound = "Not Found",
+  NotAllowed = "Not Allowed",
+  BadRequest = "Bad Request",
 }

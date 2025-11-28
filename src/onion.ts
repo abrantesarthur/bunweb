@@ -1,4 +1,5 @@
-import type { Context, BaseMiddleware, Next } from "./types";
+import type { BaseMiddleware, Next } from "./types";
+import { Context } from "./context";
 
 /**
  * Middleware composer that executes middlewares in onion-like fashion.
