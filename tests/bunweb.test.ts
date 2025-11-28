@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { server } from "../src/server";
-import { RouteMatcher } from "../src/routeMatcher";
+import { RouteMatcher, RouteMatcherMode } from "../src/routeMatcher";
 import { Method, type Middleware } from "../src/types";
 import type { Server } from "bun";
 
@@ -27,6 +27,9 @@ describe("Bunweb.registerRoute", () => {
     for (const method of [Method.Get, Method.Post, Method.Put]) {
       bunweb.routeMatchersByMethod[method] = new RouteMatcher();
     }
+    bunweb.routeMatchersByMethod[Method.Use] = new RouteMatcher(
+      RouteMatcherMode.Prefix,
+    );
   });
 
   it("stores the route on the matching method with flattened middlewares", () => {
@@ -71,6 +74,57 @@ describe("Bunweb.registerRoute", () => {
       bunweb.routeMatchersByMethod[Method.Put].match("/skip"),
     ).toBeUndefined();
   });
+
+  it("stores the route on Method.Use with flattened middlewares", () => {
+    const h1: Middleware = async (ctx, next) => {};
+    const h2: Middleware = async (ctx, next) => {};
+    const h3: Middleware = async (ctx, next) => {};
+
+    bunweb.registerRoute("/flatten-use", Method.Use, h1, [h2, h3]);
+
+    expect(
+      bunweb.routeMatchersByMethod[Method.Use].match("/flatten-use"),
+    ).toEqual({
+      middlewares: [h1, h2, h3],
+      params: {},
+    });
+    expect(
+      bunweb.routeMatchersByMethod[Method.Get].match("/flatten-use"),
+    ).toBeUndefined();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Post].match("/flatten-use"),
+    ).toBeUndefined();
+    expect(
+      bunweb.routeMatchersByMethod[Method.Put].match("/flatten-use"),
+    ).toBeUndefined();
+  });
+
+  it("throws when a middleware array contains a non-function entry for Method.Use", () => {
+    const handler: Middleware = async (ctx, next) => {};
+
+    expect(() =>
+      bunweb.registerRoute("/bad-use", Method.Use, [
+        handler,
+        "oops" as unknown,
+      ]),
+    ).toThrow('The path "/bad-use" contains a non-functional "use" handler.');
+
+    expect(
+      bunweb.routeMatchersByMethod[Method.Use].match("/bad-use"),
+    ).toBeUndefined();
+  });
+
+  it("throws when non-function middleware arguments are provided outside arrays for Method.Use", () => {
+    const handler: Middleware = async (ctx, next) => {};
+
+    expect(() =>
+      bunweb.registerRoute("/skip-use", Method.Use, handler, null),
+    ).toThrow('The path "/skip-use" contains a non-functional "use" handler.');
+
+    expect(
+      bunweb.routeMatchersByMethod[Method.Use].match("/skip-use"),
+    ).toBeUndefined();
+  });
 });
 
 describe("Bunweb.listen", () => {
@@ -113,10 +167,10 @@ describe("Bunweb.listen", () => {
       await next();
     };
 
-    app.use("/test", use1, use2);
     app.get("/test", get1);
     app.post("/test", post1);
     app.put("/test", put1);
+    app.use("/test", use1, use2);
 
     testServer = app.listen({ port: 0 });
     const port = (testServer as any).port || 0;
