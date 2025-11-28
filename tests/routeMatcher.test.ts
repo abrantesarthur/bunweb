@@ -284,6 +284,6 @@ describe("RouteMatcher (prefix mode)", () => {
 
     matcher.insert("/api", [handler]);
 
-      expect(matcher.match("/other")).toBeUndefined();
+    expect(matcher.match("/other")).toBeUndefined();
   });
 });
