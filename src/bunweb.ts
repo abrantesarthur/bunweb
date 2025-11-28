@@ -1,5 +1,4 @@
 import {
-  Context,
   Method,
   type BaseMiddleware,
   type Middleware,
@@ -9,6 +8,7 @@ import {
 import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 import { Onion } from "./onion";
 import { serve, type Server } from "bun";
+import { Context } from "./context";
 
 /**
  * Main Bunweb application class implementing a Koa-like web framework.
@@ -62,7 +62,11 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   get: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Get, ...(middlewares as BaseMiddleware[]));
+    this.registerRoute(
+      path,
+      Method.Get,
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+    );
 
   /**
    * Registers a POST route handler.
@@ -70,7 +74,11 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   post: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Post, ...(middlewares as BaseMiddleware[]));
+    this.registerRoute(
+      path,
+      Method.Post,
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+    );
 
   /**
    * Registers a PUT route handler.
@@ -78,7 +86,11 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   put: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Put, ...(middlewares as BaseMiddleware[]));
+    this.registerRoute(
+      path,
+      Method.Put,
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+    );
 
   /**
    * Registers a middleware that matches all HTTP methods with prefix matching.
@@ -87,7 +99,11 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   use: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Use, ...(middlewares as BaseMiddleware[]));
+    this.registerRoute(
+      path,
+      Method.Use,
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+    );
 
   /**
    * Starts the HTTP server and begins listening for requests.
