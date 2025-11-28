@@ -1,4 +1,4 @@
-import type { Context, Middleware, Next } from "./types";
+import type { Context, BaseMiddleware, Next } from "./types";
 
 /**
  * Middleware composer that executes middlewares in onion-like fashion.
@@ -7,14 +7,14 @@ import type { Context, Middleware, Next } from "./types";
  */
 export class Onion {
   /** Array of middleware functions to execute */
-  middlewares: Middleware[];
+  middlewares: BaseMiddleware[];
 
   /**
    * Creates a new Onion instance with the given middlewares.
    * Accepts middlewares as individual functions or arrays of functions.
    * @param middlewares - Middleware functions or arrays of middleware functions
    */
-  constructor(middlewares: (Middleware | Middleware[])[]) {
+  constructor(middlewares: (BaseMiddleware | BaseMiddleware[])[]) {
     // Flatten nested arrays and filter out non-functions
     this.middlewares = middlewares.flatMap((mw) =>
       Array.isArray(mw) ? mw : [mw],

@@ -1,4 +1,4 @@
-import type { Middleware } from "./types";
+import type { BaseMiddleware } from "./types";
 
 const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
@@ -8,7 +8,7 @@ const WILDCARD_KEY = "*";
 
 export class Node {
   children: Map<string, Node>;
-  middlewares: Middleware[];
+  middlewares: BaseMiddleware[];
   isDynamic?: boolean;
   paramName?: string;
 
@@ -27,7 +27,7 @@ export enum RouteMatcherMode {
  * Result of a route match containing middlewares and extracted parameters.
  */
 export interface MatchResult {
-  middlewares: Middleware[];
+  middlewares: BaseMiddleware[];
   params: Record<string, string>;
 }
 
@@ -54,7 +54,7 @@ export class RouteMatcher {
    * @param middlewares - Array of middleware functions to execute for this route
    * @throws Error if path contains invalid segments or wildcard is not last
    */
-  insert(path: string, middlewares: Middleware[]): void {
+  insert(path: string, middlewares: BaseMiddleware[]): void {
     const segments = this.splitPath(path);
     let current = this.root;
 
@@ -175,7 +175,7 @@ export class RouteMatcher {
     node: Node,
     segments: string[],
     index: number,
-    collected: Middleware[],
+    collected: BaseMiddleware[],
     params: Record<string, string>,
   ): MatchResult | undefined {
     const nextCollected =

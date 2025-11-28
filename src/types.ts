@@ -1,17 +1,53 @@
 /**
+ * Extracts route parameter names from a path string.
+ * Example: "/users/:id/posts/:postId" -> { id: string; postId: string }
+ */
+export type ExtractParams<P extends string> =
+  P extends `${infer _Prefix}:${infer Param}/${infer Rest}`
+    ? Param extends `${infer Name}`
+      ? { [K in Name]: string } & ExtractParams<`/${Rest}`>
+      : ExtractParams<`/${Rest}`>
+    : P extends `${infer _Prefix}:${infer Param}`
+    ? Param extends `${infer Name}`
+      ? { [K in Name]: string }
+      : {}
+    : {};
+
+/**
  * A function that calls the next middleware in the chain.
  * Must be awaited to ensure proper middleware execution order.
  */
 export type Next = () => Promise<void>;
 
 /**
- * Middleware function that processes requests and responses.
- * @param ctx - The context object containing request and response data
+ * Context with typed route parameters.
+ */
+export type TypedContext<
+  Params extends Record<string, string> = Record<string, string>,
+> = Omit<Context, "params"> & {
+  params: Params;
+};
+
+/**
+ * Base middleware type that accepts any Context.
+ * Used internally for storage and execution.
+ */
+export type BaseMiddleware = (
+  ctx: Context,
+  next: Next,
+) => Promise<void> | (() => Promise<void>);
+
+/**
+ * Middleware function that processes requests and responses with typed route parameters.
+ * Typed middleware is compatible with base middleware (structural typing).
+ * @param ctx - The context object containing request and response data with typed params
  * @param next - Function to call the next middleware in the chain
  * @returns Promise that resolves when middleware processing is complete
  */
-export type Middleware = (
-  ctx: Context,
+export type Middleware<
+  Params extends Record<string, string> = Record<string, string>,
+> = (
+  ctx: TypedContext<Params> & Context,
   next: Next,
 ) => Promise<void> | (() => Promise<void>);
 
@@ -123,12 +159,23 @@ export enum Method {
 
 /**
  * Handler function for registering routes with middlewares.
+ * Infers route parameters from the path string for type safety.
  * @param path - Route path (supports dynamic segments like :id and wildcards *)
  * @param middlewares - One or more middleware functions (can be arrays)
+ *
+ * @example
+ * ```typescript
+ * app.get("/users/:id", async (ctx, next) => {
+ *   ctx.params.id; // TypeScript knows 'id' exists
+ * });
+ * ```
  */
-export type RequestHandler = <M extends Middleware = Middleware>(
-  path: string,
-  ...middlewares: (M | M[])[]
+export type RequestHandler = <
+  Path extends string,
+  Params extends Record<string, string> = ExtractParams<Path>,
+>(
+  path: Path,
+  ...middlewares: (Middleware<Params> | Middleware<Params>[])[]
 ) => void;
 
 export interface Request {

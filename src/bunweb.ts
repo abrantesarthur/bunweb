@@ -1,6 +1,7 @@
 import {
   Context,
   Method,
+  type BaseMiddleware,
   type Middleware,
   type Request,
   type RequestHandler,
@@ -61,7 +62,7 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   get: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Get, ...middlewares);
+    this.registerRoute(path, Method.Get, ...(middlewares as BaseMiddleware[]));
 
   /**
    * Registers a POST route handler.
@@ -69,7 +70,7 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   post: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Post, ...middlewares);
+    this.registerRoute(path, Method.Post, ...(middlewares as BaseMiddleware[]));
 
   /**
    * Registers a PUT route handler.
@@ -77,7 +78,7 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   put: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Put, ...middlewares);
+    this.registerRoute(path, Method.Put, ...(middlewares as BaseMiddleware[]));
 
   /**
    * Registers a middleware that matches all HTTP methods with prefix matching.
@@ -86,7 +87,7 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    */
   use: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(path, Method.Use, ...middlewares);
+    this.registerRoute(path, Method.Use, ...(middlewares as BaseMiddleware[]));
 
   /**
    * Starts the HTTP server and begins listening for requests.
@@ -179,33 +180,36 @@ export class Bunweb implements Request {
    * @param middlewares - One or more middleware functions
    * @throws Error if any middleware is not a function
    */
-  private registerRoute = <M extends Middleware = Middleware>(
+  private registerRoute = <M extends BaseMiddleware = BaseMiddleware>(
     path: string,
     method: Method,
     ...middlewares: (M | M[])[]
   ) => {
-    const flatMiddlewares = middlewares.reduce<Middleware[]>((acc, handler) => {
-      if (Array.isArray(handler)) {
-        const fns = handler.filter((fn): fn is M => typeof fn === "function");
-        if (fns.length !== handler.length) {
+    const flatMiddlewares = middlewares.reduce<BaseMiddleware[]>(
+      (acc, handler) => {
+        if (Array.isArray(handler)) {
+          const fns = handler.filter((fn): fn is M => typeof fn === "function");
+          if (fns.length !== handler.length) {
+            throw new Error(
+              `The path "${path}" contains a non-functional "${method}" handler.`,
+            );
+          }
+          acc.push(...handler);
+          return acc;
+        }
+
+        if (typeof handler !== "function") {
           throw new Error(
             `The path "${path}" contains a non-functional "${method}" handler.`,
           );
         }
-        acc.push(...handler);
+
+        acc.push(handler);
+
         return acc;
-      }
-
-      if (typeof handler !== "function") {
-        throw new Error(
-          `The path "${path}" contains a non-functional "${method}" handler.`,
-        );
-      }
-
-      acc.push(handler);
-
-      return acc;
-    }, []);
+      },
+      [],
+    );
 
     this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
   };
