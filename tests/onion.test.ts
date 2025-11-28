@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { Onion } from "../src/onion";
-import { Context, type Middleware } from "../src/types";
+import { type Middleware } from "../src/types";
+import { Context } from "../src/context";
 
 describe("Onion.run", () => {
   it("awaits middlewares in onion order when each awaits next", async () => {
