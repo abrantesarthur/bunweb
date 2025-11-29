@@ -149,12 +149,12 @@ describe("RouteMatcher", () => {
       });
     });
 
-    it("throws for invalid path segments", () => {
+    it('throws "Unexpected MODIFIER at X" for invalid path segments containing "*"', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/users/bad*", [handler])).toThrow(
-        'Invalid route segment: "bad*"',
+        "Unexpected MODIFIER at 10",
       );
     });
 
@@ -166,52 +166,48 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/unknown")).toBeUndefined();
     });
 
-    it("prefers dynamic routes over wildcard routes", () => {
-      const matcher = new RouteMatcher();
-      const dynamicHandler: Middleware = async (ctx, next) => {};
-      const wildcardHandler: Middleware = async (ctx, next) => {};
-
-      matcher.insert("/files/:name", [dynamicHandler]);
-      matcher.insert("/files/*", [wildcardHandler]);
-
-      expect(matcher.match("/files/readme")).toEqual({
-        middlewares: [dynamicHandler],
-        params: { name: "readme" },
-      });
-      expect(matcher.match("/files/readme/nested")).toEqual({
-        middlewares: [wildcardHandler],
-        params: {},
-      });
-    });
-
-    it("falls back to wildcard routes when no static or dynamic match exists", () => {
-      const matcher = new RouteMatcher();
-      const staticHandler: Middleware = async (ctx, next) => {};
-      const wildcardHandler: Middleware = async (ctx, next) => {};
-
-      matcher.insert("/assets/app.js", [staticHandler]);
-      matcher.insert("/assets/*", [wildcardHandler]);
-
-      expect(matcher.match("/assets/app.js")).toEqual({
-        middlewares: [staticHandler],
-        params: {},
-      });
-      expect(matcher.match("/assets/missing.png")).toEqual({
-        middlewares: [wildcardHandler],
-        params: {},
-      });
-      expect(matcher.match("/assets/images/icon.png")).toEqual({
-        middlewares: [wildcardHandler],
-        params: {},
-      });
-    });
-
-    it('throws when "*" is not the final segment', () => {
+    it('throws "Unexpected MODIFIER at X" when path contains "*" at the beginning', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
-      expect(() => matcher.insert("/oops/*/tail", [handler])).toThrow(
-        'Wildcard "*" must be the last segment in a route path.',
+      expect(() => matcher.insert("/*", [handler])).toThrow(
+        "Unexpected MODIFIER at 1",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" when path contains "*" in the middle', () => {
+      const matcher = new RouteMatcher();
+      const handler: Middleware = async (ctx, next) => {};
+
+      expect(() => matcher.insert("/users/*", [handler])).toThrow(
+        "Unexpected MODIFIER at 7",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" when path contains "*" in a segment', () => {
+      const matcher = new RouteMatcher();
+      const handler: Middleware = async (ctx, next) => {};
+
+      expect(() => matcher.insert("/files/*/nested", [handler])).toThrow(
+        "Unexpected MODIFIER at 7",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" when path contains "*" within a segment', () => {
+      const matcher = new RouteMatcher();
+      const handler: Middleware = async (ctx, next) => {};
+
+      expect(() => matcher.insert("/test*path", [handler])).toThrow(
+        "Unexpected MODIFIER at 5",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for first occurrence when path contains multiple "*"', () => {
+      const matcher = new RouteMatcher();
+      const handler: Middleware = async (ctx, next) => {};
+
+      expect(() => matcher.insert("/test*path*more", [handler])).toThrow(
+        "Unexpected MODIFIER at 5",
       );
     });
   });

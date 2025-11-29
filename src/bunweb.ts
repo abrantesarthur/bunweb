@@ -233,10 +233,3 @@ export class Bunweb implements Request {
     this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
   };
 }
-
-/**
- * FIXME:
- * 1. Route handlers (e.g., get, put, post) MUST be registered so middlewares execute.
- *    If we implement only use(), we should retun 404!
- * 2. Remove the use of *. Koa only allows it in use, but its edge cases are too complicated to understand. We do not allow it at all!!!
- */

@@ -60,7 +60,7 @@ export enum Method {
 /**
  * Handler function for registering routes with middlewares.
  * Infers route parameters from the path string for type safety.
- * @param path - Route path (supports dynamic segments like :id and wildcards *)
+ * @param path - Route path (supports dynamic segments like :id)
  * @param middlewares - One or more middleware functions (can be arrays)
  *
  * @example

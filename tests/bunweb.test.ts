@@ -346,7 +346,7 @@ describe("Bunweb.listen", () => {
     expect(text).toBe("use middleware executed");
   });
 
-  it("executes middlewares according to precedence (static before dynamic before wildcards)", async () => {
+  it("executes middlewares according to precedence (static before dynamic)", async () => {
     const staticMiddleware: Middleware = async (ctx, next) => {
       calls.push("static");
       await next();
@@ -355,20 +355,15 @@ describe("Bunweb.listen", () => {
       calls.push("dynamic");
       await next();
     };
-    const wildcardMiddleware: Middleware = async (ctx, next) => {
-      calls.push("wildcard");
-      await next();
-    };
 
     // Register in reverse order to test precedence
-    app.use("/files/*", wildcardMiddleware);
     app.use("/files/:id", dynamicMiddleware);
     app.use("/files/static", staticMiddleware);
 
     testServer = app.listen({ port: 0 });
     const port = (testServer as any).port || 0;
 
-    // Test static path - should match static, not dynamic or wildcard
+    // Test static path - should match static, not dynamic
     const staticResponse = await fetch(
       `http://localhost:${port}/files/static`,
       { method: "GET" },
@@ -377,21 +372,12 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["static"]);
     calls.length = 0;
 
-    // Test dynamic path - should match dynamic, not wildcard
+    // Test dynamic path - should match dynamic
     const dynamicResponse = await fetch(`http://localhost:${port}/files/123`, {
       method: "GET",
     });
     expect(dynamicResponse.status).toBe(200);
     expect(calls).toEqual(["dynamic"]);
-    calls.length = 0;
-
-    // Test wildcard path - should match wildcard
-    const wildcardResponse = await fetch(
-      `http://localhost:${port}/files/123/nested`,
-      { method: "GET" },
-    );
-    expect(wildcardResponse.status).toBe(200);
-    expect(calls).toEqual(["wildcard"]);
   });
 
   it("extracts route parameters and makes them available in context", async () => {

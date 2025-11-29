@@ -3,8 +3,6 @@ import type { BaseMiddleware } from "./types";
 const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
 const DYNAMIC_KEY = ":";
-const WILDCARD_SEGMENT = "*";
-const WILDCARD_KEY = "*";
 
 class Node {
   children: Map<string, Node>;
@@ -32,7 +30,7 @@ export interface MatchResult {
 }
 
 /**
- * Route matcher that supports static, dynamic (:param), and wildcard (*) routes.
+ * Route matcher that supports static and dynamic (:param) routes.
  * Can operate in exact or prefix matching mode.
  */
 export class RouteMatcher {
@@ -50,11 +48,17 @@ export class RouteMatcher {
 
   /**
    * Inserts a route path with associated middlewares into the matcher.
-   * @param path - Route path pattern (e.g., "/users/:id", "/files/*")
+   * @param path - Route path pattern (e.g., "/users/:id")
    * @param middlewares - Array of middleware functions to execute for this route
-   * @throws Error if path contains invalid segments or wildcard is not last
+   * @throws Error if path contains invalid segments or wildcard characters
    */
   insert(path: string, middlewares: BaseMiddleware[]): void {
+    // Check for wildcard character (*) in the path
+    const wildcardIndex = path.indexOf("*");
+    if (wildcardIndex !== -1) {
+      throw new Error(`Unexpected wildcard MODIFIER at ${wildcardIndex}`);
+    }
+
     const segments = this.splitPath(path);
     let current = this.root;
 
@@ -62,12 +66,6 @@ export class RouteMatcher {
     for (let index = 0; index < segments.length; index++) {
       const segment = segments[index]!;
       const parsed = this.parseSegment(segment);
-
-      if (parsed.isWildcard && index !== segments.length - 1) {
-        throw new Error(
-          'Wildcard "*" must be the last segment in a route path.',
-        );
-      }
 
       let child = current.children.get(parsed.key);
       if (!child) {
@@ -123,7 +121,6 @@ export class RouteMatcher {
    * Search strategy (tried in order):
    * 1. Static segment match - matches exact segment name (e.g., "users" matches "users")
    * 2. Dynamic segment match - matches any segment and captures it as a parameter (e.g., ":id" matches "123")
-   * 3. Wildcard match - matches any remaining segments (e.g., "*" matches everything)
    *
    * @param node - Current node in the route tree
    * @param segments - Path segments to match (e.g., ["users", "123"])
@@ -142,12 +139,6 @@ export class RouteMatcher {
       // Check if current node has middlewares (exact route match)
       if (node.middlewares.length > 0) {
         return { middlewares: node.middlewares, params };
-      }
-
-      // Check for wildcard route (matches empty remaining path)
-      const wildcardChild = node.children.get(WILDCARD_KEY);
-      if (wildcardChild) {
-        return { middlewares: wildcardChild.middlewares, params };
       }
 
       return undefined;
@@ -179,12 +170,6 @@ export class RouteMatcher {
       }
     }
 
-    // Try wildcard match (matches remaining segments)
-    const wildcardChild = node.children.get(WILDCARD_KEY);
-    if (wildcardChild) {
-      return { middlewares: wildcardChild.middlewares, params };
-    }
-
     return undefined;
   }
 
@@ -201,8 +186,7 @@ export class RouteMatcher {
    * Search strategy (tried in order):
    * 1. Static segment match - matches exact segment name
    * 2. Dynamic segment match - matches any segment and captures it as a parameter
-   * 3. Wildcard match - matches any remaining segments (with special handling for remaining segments)
-   * 4. Return collected middlewares if any were found (prefix match success)
+   * 3. Return collected middlewares if any were found (prefix match success)
    *
    * @param node - Current node in the route tree
    * @param segments - Path segments to match (e.g., ["users", "123"])
@@ -226,14 +210,6 @@ export class RouteMatcher {
 
     // Base case: all segments consumed
     if (index >= segments.length) {
-      // Check for wildcard route at the end
-      const wildcardChild = node.children.get(WILDCARD_KEY);
-      if (wildcardChild) {
-        return {
-          middlewares: [...nextCollected, ...wildcardChild.middlewares],
-          params,
-        };
-      }
       // Return collected middlewares if any were found (prefix match success)
       if (nextCollected.length > 0) {
         return { middlewares: nextCollected, params };
@@ -259,7 +235,6 @@ export class RouteMatcher {
     }
 
     const dynamicChild = node.children.get(DYNAMIC_KEY);
-    const wildcardChild = node.children.get(WILDCARD_KEY);
 
     // Try dynamic segment match (e.g., :id matches any value)
     if (dynamicChild && dynamicChild.paramName) {
@@ -272,27 +247,8 @@ export class RouteMatcher {
         newParams,
       );
       if (match) {
-        // Check if there are remaining segments that weren't consumed by the dynamic route
-        // If wildcard exists and there are remaining segments, prefer wildcard
-        const currentSegmentIndex = index + 1;
-        const hasRemainingSegments = currentSegmentIndex < segments.length;
-        if (hasRemainingSegments && wildcardChild) {
-          // This handles the case where /files/:id matches /files/123 but /files/123/nested should match /files/*
-          return {
-            middlewares: [...nextCollected, ...wildcardChild.middlewares],
-            params,
-          };
-        }
         return match;
       }
-    }
-
-    // Try wildcard match (matches remaining segments)
-    if (wildcardChild) {
-      return {
-        middlewares: [...nextCollected, ...wildcardChild.middlewares],
-        params,
-      };
     }
 
     // Prefix match: return collected middlewares if any were found
@@ -306,22 +262,16 @@ export class RouteMatcher {
   private parseSegment(segment: string): {
     key: string;
     isDynamic: boolean;
-    isWildcard: boolean;
     paramName?: string;
   } {
-    if (segment === WILDCARD_SEGMENT) {
-      return { key: WILDCARD_KEY, isDynamic: false, isWildcard: true };
-    }
-
     if (STATIC_SEGMENT.test(segment)) {
-      return { key: segment, isDynamic: false, isWildcard: false };
+      return { key: segment, isDynamic: false };
     }
 
     if (DYNAMIC_SEGMENT.test(segment)) {
       return {
         key: DYNAMIC_KEY,
         isDynamic: true,
-        isWildcard: false,
         paramName: segment.slice(1),
       };
     }
