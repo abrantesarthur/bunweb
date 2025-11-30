@@ -143,6 +143,7 @@ describe("Bunweb.listen", () => {
       testServer.stop();
       testServer = null;
     }
+    calls.length = 0;
   });
 
   it("returns not found if no method-specific middlewares are registered", async () => {
@@ -165,7 +166,82 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual([]);
   });
 
-  it.skip("SF executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
+  it("should return 404 for unmatched routes", async () => {
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    // Test GET
+    const getResponse = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(getResponse.status).toBe(404);
+    expect(getResponse.body).toBeNull;
+  });
+
+  it("should return 404 for matched routes without body written and without status set", async () => {
+    const get: Middleware = async (ctx, next) => {
+      calls.push("get");
+      await next();
+    };
+
+    app.get("/test", get);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    // Test GET
+    const getResponse = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(getResponse.status).toBe(404);
+    expect(getResponse.body).toBeNull;
+    expect(calls).toEqual(["get"]);
+  });
+
+  it("should return status for matched routes without body written but with status set", async () => {
+    const get: Middleware = async (ctx, next) => {
+      calls.push("get");
+      ctx.status = 203;
+      await next();
+    };
+
+    app.get("/test", get);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    // Test GET
+    const getResponse = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(getResponse.status).toBe(203);
+    expect(getResponse.body).toBeNull;
+    expect(calls).toEqual(["get"]);
+  });
+
+  it("should return 200 for matched routes with body written but status not set", async () => {
+    const get: Middleware = async (ctx, next) => {
+      calls.push("get");
+      ctx.body = { message: "ok" };
+      await next();
+    };
+
+    app.get("/test", get);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    // Test GET
+    const getResponse = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(getResponse.status).toBe(200);
+    const json = await getResponse.json();
+    expect(json).toEqual({ message: "ok" });
+    expect(calls).toEqual(["get"]);
+  });
+
+  it.skip("executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
       await next();

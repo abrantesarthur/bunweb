@@ -171,7 +171,6 @@ export class Bunweb implements Request {
 
           // Method-specific params completely replace prefix params when present
           const ctx = new Context(request);
-          ctx.status = 404; // Default status - middlewares should update this if needed
           ctx.params = methodMatch ? methodParams : useParams;
 
           // Compose middlewares using Onion

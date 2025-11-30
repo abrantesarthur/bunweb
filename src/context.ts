@@ -18,10 +18,34 @@ export class Context {
   method: string;
   /** Request path (e.g., "/users/123") */
   path: string;
+  /** Tracks whether status was explicitly set */
+  private _explicitStatus: boolean = false;
+  /** Internal status storage */
+  private _status: number;
   /** HTTP response status code */
-  status!: number;
+  get status(): number {
+    return this._status;
+  }
+  set status(value: number) {
+    this._explicitStatus = true;
+    this._status = value;
+  }
+  /** Internal body storage */
+  private _body: unknown = null;
   /** Response body to be sent */
-  body: unknown = null;
+  get body(): unknown {
+    return this._body;
+  }
+  set body(value: unknown) {
+    if (!this._explicitStatus) {
+      if (value === null) {
+        this._status = 204;
+      } else {
+        this._status = 200;
+      }
+    }
+    this._body = value;
+  }
   /** Route parameters extracted from the path (e.g., { id: "123" } from "/users/:id") */
   params: Record<string, string> = {};
   /** Error object if an error occurred during middleware execution */
@@ -51,6 +75,7 @@ export class Context {
     this.host = host;
     this.hostname = hostname;
     this.protocol = protocol;
+    this._status = 404;
   }
 
   /**
