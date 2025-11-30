@@ -12,6 +12,26 @@
  * ```
  */
 export class Context {
+  /**
+   * Mapping from HTTP status code to status text.
+   * Based on the mappings from helpers.ts.
+   */
+  private static readonly STATUS_CODE_TO_TEXT: Record<number, string> = {
+    400: "Bad Request",
+    403: "Forbidden",
+    404: "Not Found",
+    405: "Not Allowed",
+    500: "Internal Server Error",
+  };
+
+  /**
+   * Gets the status text for a given status code.
+   * Returns undefined if no mapping exists.
+   */
+  private static getStatusText(statusCode: number): string | undefined {
+    return Context.STATUS_CODE_TO_TEXT[statusCode];
+  }
+
   /** The original HTTP request object */
   request: globalThis.Request;
   /** HTTP method in lowercase (e.g., "get", "post") */
@@ -118,8 +138,10 @@ export class Context {
       }
     }
 
+    const statusText = Context.getStatusText(this.status);
     return new globalThis.Response(responseBody, {
       status: this.status,
+      statusText: statusText,
       headers: Object.keys(headers).length > 0 ? headers : undefined,
     });
   }

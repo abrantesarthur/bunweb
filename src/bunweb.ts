@@ -1,5 +1,4 @@
 import {
-  HttpErrorMessage,
   Method,
   type BaseMiddleware,
   type Request,
@@ -9,7 +8,6 @@ import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 import { Onion } from "./onion";
 import { serve, type Server } from "bun";
 import { Context } from "./context";
-import { getHttpErrorResponse } from "./helpers";
 
 /**
  * Main Bunweb application class implementing a Koa-like web framework.
@@ -133,6 +131,7 @@ export class Bunweb implements Request {
           const method = request.method.toLowerCase();
           const url = new URL(request.url);
           const path = url.pathname;
+          const ctx = new Context(request);
 
           // Map HTTP method to Method enum
           let methodEnum: Method;
@@ -148,7 +147,8 @@ export class Bunweb implements Request {
               methodEnum = Method.Put;
               break;
             default:
-              return getHttpErrorResponse(HttpErrorMessage.NotAllowed);
+              ctx.status = 405;
+              return ctx.toResponse();
           }
 
           // Gather middlewares and extract route parameters
@@ -163,12 +163,11 @@ export class Bunweb implements Request {
           const methodMiddlewares = methodMatch?.middlewares ?? [];
           const methodParams = methodMatch?.params ?? {};
 
-          const ctx = new Context(request);
-
           // If no method-specific middlewares matched, return Not Found error
           // Method-specific handlers are required - "use" middlewares alone are not sufficient
           if (methodMiddlewares.length === 0) {
-            return getHttpErrorResponse(HttpErrorMessage.NotFound);
+            ctx.status = 404;
+            return ctx.toResponse();
           }
 
           // Method-specific params completely replace prefix params when present
