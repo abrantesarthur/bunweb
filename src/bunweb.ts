@@ -163,6 +163,8 @@ export class Bunweb implements Request {
           const methodMiddlewares = methodMatch?.middlewares ?? [];
           const methodParams = methodMatch?.params ?? {};
 
+          const ctx = new Context(request);
+
           // If no method-specific middlewares matched, return Not Found error
           // Method-specific handlers are required - "use" middlewares alone are not sufficient
           if (methodMiddlewares.length === 0) {
@@ -170,7 +172,6 @@ export class Bunweb implements Request {
           }
 
           // Method-specific params completely replace prefix params when present
-          const ctx = new Context(request);
           ctx.params = methodMatch ? methodParams : useParams;
 
           // Compose middlewares using Onion

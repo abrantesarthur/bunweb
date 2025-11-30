@@ -241,6 +241,26 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["get"]);
   });
 
+  it("should accept valid status codes between 100 and 999", async () => {
+    const get: Middleware = async (ctx, next) => {
+      ctx.status = 201;
+      ctx.body = { message: "created" };
+      await next();
+    };
+
+    app.get("/test", get);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    const getResponse = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(getResponse.status).toBe(201);
+    const json = await getResponse.json();
+    expect(json).toEqual({ message: "created" });
+  });
+
   it.skip("executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
