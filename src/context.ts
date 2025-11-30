@@ -18,8 +18,8 @@ export class Context {
   method: string;
   /** Request path (e.g., "/users/123") */
   path: string;
-  /** HTTP response status code (default: 404) */
-  status: number = 404;
+  /** HTTP response status code */
+  status!: number;
   /** Response body to be sent */
   body: unknown = null;
   /** Route parameters extracted from the path (e.g., { id: "123" } from "/users/:id") */

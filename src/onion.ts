@@ -89,13 +89,5 @@ export class Onion {
     };
 
     await dispatch(0);
-
-    // FIXME: think this through better
-    // If an error exists and status is still 404, set it to 500 (unhandled server error)
-    // This ensures errors always have error status codes
-    // Middleware can override by setting their own status (e.g., 400 for client errors)
-    if (ctx.error && ctx.status === 404) {
-      ctx.status = 500;
-    }
   }
 }

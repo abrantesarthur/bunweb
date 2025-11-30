@@ -210,21 +210,6 @@ describe("Onion.run", () => {
     expect(calls).toEqual(["m1", "m2", "m3", "m4"]);
   });
 
-  it("automatically sets status to 500 if error exists and status is still 200", async () => {
-    const onion = new Onion([
-      async () => {
-        throw new Error("Something failed");
-      },
-    ]);
-    const ctx = new Context(new Request("http://localhost/test"));
-
-    await onion.run(ctx);
-
-    expect(ctx.error).toBeDefined();
-    expect(ctx.error?.message).toBe("Something failed");
-    expect(ctx.status).toBe(500);
-  });
-
   it("does not override status if middleware already set it", async () => {
     const onion = new Onion([
       async (ctx, next) => {
