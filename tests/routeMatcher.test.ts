@@ -149,12 +149,12 @@ describe("RouteMatcher", () => {
       });
     });
 
-    it('throws "Unexpected MODIFIER at X" for invalid path segments containing "*"', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" for invalid path segments containing "*"', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/users/bad*", [handler])).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected wildcard MODIFIER at 10",
       );
     });
 
@@ -166,48 +166,48 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/unknown")).toBeUndefined();
     });
 
-    it('throws "Unexpected MODIFIER at X" when path contains "*" at the beginning', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" when path contains "*" at the beginning', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/*", [handler])).toThrow(
-        "Unexpected MODIFIER at 1",
+        "Unexpected wildcard MODIFIER at 1",
       );
     });
 
-    it('throws "Unexpected MODIFIER at X" when path contains "*" in the middle', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" when path contains "*" in the middle', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/users/*", [handler])).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected wildcard MODIFIER at 7",
       );
     });
 
-    it('throws "Unexpected MODIFIER at X" when path contains "*" in a segment', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" when path contains "*" in a segment', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/files/*/nested", [handler])).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected wildcard MODIFIER at 7",
       );
     });
 
-    it('throws "Unexpected MODIFIER at X" when path contains "*" within a segment', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" when path contains "*" within a segment', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/test*path", [handler])).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected wildcard MODIFIER at 5",
       );
     });
 
-    it('throws "Unexpected MODIFIER at X" for first occurrence when path contains multiple "*"', () => {
+    it('throws "Unexpected wildcard MODIFIER at X" for first occurrence when path contains multiple "*"', () => {
       const matcher = new RouteMatcher();
       const handler: Middleware = async (ctx, next) => {};
 
       expect(() => matcher.insert("/test*path*more", [handler])).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected wildcard MODIFIER at 5",
       );
     });
   });

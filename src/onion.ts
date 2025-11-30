@@ -74,6 +74,7 @@ export class Onion {
         // Koa-style error handling: store runtime errors in context
         // This allows downstream middleware to handle the error.
         // If multiple middlewares throw erros, only the first one is stored.
+        // FIXME: stop storing erorr
         if (!ctx.error) {
           ctx.error = error;
         }
@@ -89,10 +90,11 @@ export class Onion {
 
     await dispatch(0);
 
-    // If an error exists and status is still 200, set it to 500 (unhandled server error)
+    // FIXME: think this through better
+    // If an error exists and status is still 404, set it to 500 (unhandled server error)
     // This ensures errors always have error status codes
     // Middleware can override by setting their own status (e.g., 400 for client errors)
-    if (ctx.error && ctx.status === 200) {
+    if (ctx.error && ctx.status === 404) {
       ctx.status = 500;
     }
   }

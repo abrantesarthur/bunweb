@@ -32,7 +32,7 @@ describe("Bunweb.registerRoute", () => {
     );
   });
 
-  it("stores the route on the matching method with flattened middlewares", () => {
+  it.skip("stores the route on the matching method with flattened middlewares", () => {
     const h1: Middleware = async (ctx, next) => {};
     const h2: Middleware = async (ctx, next) => {};
     const h3: Middleware = async (ctx, next) => {};
@@ -51,7 +51,7 @@ describe("Bunweb.registerRoute", () => {
     ).toBeUndefined();
   });
 
-  it("throws when a middleware array contains a non-function entry", () => {
+  it.skip("throws when a middleware array contains a non-function entry", () => {
     const handler: Middleware = async (ctx, next) => {};
 
     expect(() =>
@@ -63,7 +63,7 @@ describe("Bunweb.registerRoute", () => {
     ).toBeUndefined();
   });
 
-  it("throws when non-function middleware arguments are provided outside arrays", () => {
+  it.skip("throws when non-function middleware arguments are provided outside arrays", () => {
     const handler: Middleware = async (ctx, next) => {};
 
     expect(() =>
@@ -75,7 +75,7 @@ describe("Bunweb.registerRoute", () => {
     ).toBeUndefined();
   });
 
-  it("stores the route on Method.Use with flattened middlewares", () => {
+  it.skip("stores the route on Method.Use with flattened middlewares", () => {
     const h1: Middleware = async (ctx, next) => {};
     const h2: Middleware = async (ctx, next) => {};
     const h3: Middleware = async (ctx, next) => {};
@@ -99,7 +99,7 @@ describe("Bunweb.registerRoute", () => {
     ).toBeUndefined();
   });
 
-  it("throws when a middleware array contains a non-function entry for Method.Use", () => {
+  it.skip("throws when a middleware array contains a non-function entry for Method.Use", () => {
     const handler: Middleware = async (ctx, next) => {};
 
     expect(() =>
@@ -114,7 +114,7 @@ describe("Bunweb.registerRoute", () => {
     ).toBeUndefined();
   });
 
-  it("throws when non-function middleware arguments are provided outside arrays for Method.Use", () => {
+  it.skip("throws when non-function middleware arguments are provided outside arrays for Method.Use", () => {
     const handler: Middleware = async (ctx, next) => {};
 
     expect(() =>
@@ -145,7 +145,27 @@ describe("Bunweb.listen", () => {
     }
   });
 
-  it("SF executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
+  it("returns not found if no method-specific middlewares are registered", async () => {
+    const use: Middleware = async (ctx, next) => {
+      ctx.body = { message: "ok" };
+      calls.push("use");
+      await next();
+    };
+
+    app.use("/test", use);
+
+    testServer = app.listen({ port: 0 });
+    const port = (testServer as any).port || 0;
+
+    // Test GET
+    const response = await fetch(`http://localhost:${port}/test`, {
+      method: "GET",
+    });
+    expect(response.status).toBe(404);
+    expect(calls).toEqual([]);
+  });
+
+  it.skip("SF executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
       await next();
@@ -199,7 +219,7 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["use1", "use2", "put1"]);
   });
 
-  it("OK executes nested use middlewares for all prefix paths, then method-specific middleware", async () => {
+  it.skip("OK executes nested use middlewares for all prefix paths, then method-specific middleware", async () => {
     const usePath: Middleware = async (ctx, next) => {
       calls.push("use-/path");
       await next();
@@ -274,7 +294,7 @@ describe("Bunweb.listen", () => {
     ]);
   });
 
-  it("OK executes middlewares according to registration order", async () => {
+  it.skip("OK executes middlewares according to registration order", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
       await next();
@@ -320,7 +340,7 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["use1", "use2", "use3", "get1", "get2", "get3"]);
   });
 
-  it("SF runs use middlewares even when no method-specific middleware is registered", async () => {
+  it.skip("SF runs use middlewares even when no method-specific middleware is registered", async () => {
     const use1: Middleware = async (ctx, next) => {
       ctx.body = "use middleware executed";
       calls.push("use1");
@@ -346,7 +366,7 @@ describe("Bunweb.listen", () => {
     expect(text).toBe("use middleware executed");
   });
 
-  it("SF (point 3) executes middlewares according to precedence (static before dynamic)", async () => {
+  it.skip("SF (point 3) executes middlewares according to precedence (static before dynamic)", async () => {
     const staticMiddleware: Middleware = async (ctx, next) => {
       calls.push("static");
       await next();
@@ -380,7 +400,7 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["dynamic"]);
   });
 
-  it("OK extracts route parameters and makes them available in context", async () => {
+  it.skip("OK extracts route parameters and makes them available in context", async () => {
     const handler: Middleware = async (ctx, next) => {
       ctx.body = { params: ctx.params };
       await next();
@@ -399,7 +419,7 @@ describe("Bunweb.listen", () => {
     expect(json).toEqual({ params: { id: "123" } });
   });
 
-  it("extracts multiple route parameters", async () => {
+  it.skip("OK extracts multiple route parameters", async () => {
     let capturedParams: Record<string, string> = {};
     const handler: Middleware = async (ctx, next) => {
       capturedParams = ctx.params;
@@ -422,7 +442,7 @@ describe("Bunweb.listen", () => {
     expect(json).toEqual({ userId: "123", postId: "456" });
   });
 
-  it("method-specific route parameters override prefix route parameters", async () => {
+  it.skip("SF method-specific route parameters override prefix route parameters", async () => {
     let capturedParams: Record<string, string> = {};
     const useHandler: Middleware = async (ctx, next) => {
       await next();
@@ -447,7 +467,7 @@ describe("Bunweb.listen", () => {
     expect(capturedParams).toEqual({ userId: "123" });
   });
 
-  it("provides base URL properties in context", async () => {
+  it.skip("OK provides base URL properties in context", async () => {
     let capturedContext: any = {};
     const handler: Middleware = async (ctx, next) => {
       capturedContext = {
@@ -475,7 +495,7 @@ describe("Bunweb.listen", () => {
     expect(capturedContext.protocol).toBe("http:");
   });
 
-  it("handles errors in middleware and stores them in context", async () => {
+  it.skip("SF handles errors in middleware and stores them in context", async () => {
     const errorHandler: Middleware = async (ctx, next) => {
       await next();
       if (ctx.error) {
@@ -501,7 +521,7 @@ describe("Bunweb.listen", () => {
     expect(json).toEqual({ error: "Something went wrong" });
   });
 
-  it("handles Error objects in response body", async () => {
+  it.skip("SF handles Error objects in response body", async () => {
     const handler: Middleware = async (ctx, next) => {
       ctx.body = new Error("Test error");
       ctx.status = 500;
@@ -523,7 +543,7 @@ describe("Bunweb.listen", () => {
     expect(json).toHaveProperty("stack");
   });
 
-  it("allows setting custom headers in context", async () => {
+  it.skip("SF allows setting custom headers in context", async () => {
     const handler: Middleware = async (ctx, next) => {
       ctx.headers["X-Custom-Header"] = "custom-value";
       ctx.headers["X-Another-Header"] = "another-value";

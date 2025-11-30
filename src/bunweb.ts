@@ -163,8 +163,9 @@ export class Bunweb implements Request {
           const methodMiddlewares = methodMatch?.middlewares ?? [];
           const methodParams = methodMatch?.params ?? {};
 
-          // If no middlewares matched, return Not Found error
-          if (useMiddlewares.length === 0 && methodMiddlewares.length === 0) {
+          // If no method-specific middlewares matched, return Not Found error
+          // Method-specific handlers are required - "use" middlewares alone are not sufficient
+          if (methodMiddlewares.length === 0) {
             return getHttpErrorResponse(HttpErrorMessage.NotFound);
           }
 
@@ -236,13 +237,29 @@ export class Bunweb implements Request {
 
 /**
  * FIXME:
- * 1. Route handlers (e.g., get, put, post) MUST be registered so middlewares execute.
- *    They can even pass an empty function, but MUST be registered.
- *    If we implement only use(), we should retun 404!
  * 2. The middleware chain (including .use() handlers) MUST write a response
- *    (e.g., ctx.(body|status, res.statusCode)). otherwise, route is unhandled and return 404
+ *    (e.g., ctx.(body|status)). otherwise, return 404
  *    Test that should fail: "executes use middlewares before method-specific middlewares for GET, POST, PUT"
+ *    The general rule is:
+ *      1. Route not matched: 404
+ *      2. Route matched, no body && no status written: 404
+ *      3. Route matched, no body but status written: status
+ *      4. Route matched, body but no status written: 200
  * 3. if we register .use(/:dynamic, m1) then .use(/static, m2), getting /static should:
  *      - trigger BOTH m1,m2, not just m2
  *      - trigger m1,m2 in this order. Handlers run in REGISTRATION ORDER, not static over dynamic order
+ * 4. method-specific route parameters DO NOT override prefix route parameters.
+ *    if we register use(/users/:id) and get(/users/:uid) get Get /users/123, the params should contain
+ *    both {id: 123, uid:123} instead of just {uid: 123}
+ *    Tests taht should fail: method-specific route parameters override prefix route parameters
+ * 5. stop setting ctx.error! propagate errors through chain and let developer decide how to treat them.
+ * 6. stop setting ctx.status on error! Let application decide that.
+ * 7. implement ctx.error(status, message) which:
+ *      - create http error object; sets its status and message and throws it
+ * 8. ctx.status should be 404 by default!
+ * 9. Context.toResponse() should mimick koa's application.js/respond method
+ *    Stringify the body instead of trying to transform errors
+ * 10. ctx.headers is for reading IncomingHttpHeaders. To set response headers, use ctx.set(header, value)
+ *    - ctx.headers should be implemented as a getter
+ *    - test that should fail: allows setting custom headers in context
  */
