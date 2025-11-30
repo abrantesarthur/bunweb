@@ -380,10 +380,8 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["dynamic"]);
   });
 
-  it("extracts route parameters and makes them available in context", async () => {
-    let capturedParams: Record<string, string> = {};
+  it("OK extracts route parameters and makes them available in context", async () => {
     const handler: Middleware = async (ctx, next) => {
-      capturedParams = ctx.params;
       ctx.body = { params: ctx.params };
       await next();
     };
@@ -397,7 +395,6 @@ describe("Bunweb.listen", () => {
       method: "GET",
     });
     expect(response.status).toBe(200);
-    expect(capturedParams).toEqual({ id: "123" });
     const json = await response.json();
     expect(json).toEqual({ params: { id: "123" } });
   });
