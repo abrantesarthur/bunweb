@@ -233,3 +233,16 @@ export class Bunweb implements Request {
     this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
   };
 }
+
+/**
+ * FIXME:
+ * 1. Route handlers (e.g., get, put, post) MUST be registered so middlewares execute.
+ *    They can even pass an empty function, but MUST be registered.
+ *    If we implement only use(), we should retun 404!
+ * 2. The middleware chain (including .use() handlers) MUST write a response
+ *    (e.g., ctx.(body|status, res.statusCode)). otherwise, route is unhandled and return 404
+ *    Test that should fail: "executes use middlewares before method-specific middlewares for GET, POST, PUT"
+ * 3. if we register .use(/:dynamic, m1) then .use(/static, m2), getting /static should:
+ *      - trigger BOTH m1,m2, not just m2
+ *      - trigger m1,m2 in this order. Handlers run in REGISTRATION ORDER, not static over dynamic order
+ */

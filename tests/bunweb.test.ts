@@ -145,7 +145,7 @@ describe("Bunweb.listen", () => {
     }
   });
 
-  it("executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
+  it("SF executes use middlewares before method-specific middlewares for GET, POST, PUT", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
       await next();
@@ -199,7 +199,7 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["use1", "use2", "put1"]);
   });
 
-  it("executes nested use middlewares for all prefix paths, then method-specific middleware", async () => {
+  it("OK executes nested use middlewares for all prefix paths, then method-specific middleware", async () => {
     const usePath: Middleware = async (ctx, next) => {
       calls.push("use-/path");
       await next();
@@ -274,7 +274,7 @@ describe("Bunweb.listen", () => {
     ]);
   });
 
-  it("executes middlewares according to registration order", async () => {
+  it("OK executes middlewares according to registration order", async () => {
     const use1: Middleware = async (ctx, next) => {
       calls.push("use1");
       await next();
@@ -320,10 +320,10 @@ describe("Bunweb.listen", () => {
     expect(calls).toEqual(["use1", "use2", "use3", "get1", "get2", "get3"]);
   });
 
-  it("runs use middlewares even when no method-specific middleware is registered", async () => {
+  it("SF runs use middlewares even when no method-specific middleware is registered", async () => {
     const use1: Middleware = async (ctx, next) => {
-      calls.push("use1");
       ctx.body = "use middleware executed";
+      calls.push("use1");
       await next();
     };
     const use2: Middleware = async (ctx, next) => {
@@ -346,7 +346,7 @@ describe("Bunweb.listen", () => {
     expect(text).toBe("use middleware executed");
   });
 
-  it("executes middlewares according to precedence (static before dynamic)", async () => {
+  it("SF (point 3) executes middlewares according to precedence (static before dynamic)", async () => {
     const staticMiddleware: Middleware = async (ctx, next) => {
       calls.push("static");
       await next();
