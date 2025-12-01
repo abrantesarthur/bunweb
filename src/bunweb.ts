@@ -131,9 +131,9 @@ export class Bunweb implements Request {
           // Extract method and path from request
           const method = request.method.toLowerCase();
           const url = new URL(request.url);
-          const { path } = ctx;
+          const { path, searchParams } = ctx;
 
-          console.log({ path });
+          console.log({ path, searchParams });
 
           // Map HTTP method to Method enum
           let methodEnum: Method;
