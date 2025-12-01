@@ -20,6 +20,7 @@
     "build": "bunx tsc --project tsconfig.build.json",
     "test": "bun test",
     "prepublishOnly": "bun run build",
+    "postinstall": "git config core.hooksPath .githooks || true",
     "lint": "bunx eslint src/**/*.ts tests/**/*.ts",
     "lint:fix": "bunx eslint --fix src/**/*.ts tests/**/*.ts",
     "format": "bunx prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
