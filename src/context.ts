@@ -90,8 +90,6 @@ export class Context {
   }
   /** Route parameters extracted from the path (e.g., { id: "123" } from "/users/:id") */
   params: Record<string, string> = {};
-  /** Error object if an error occurred during middleware execution */
-  error?: Error;
   /** Request origin (protocol + host, e.g., "http://localhost:3000") */
   origin: string;
   /** Request host with port (e.g., "localhost:3000") */

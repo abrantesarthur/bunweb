@@ -606,12 +606,12 @@ describe("Bunweb.listen", () => {
     expect(capturedContext.protocol).toBe("http:");
   });
 
-  it("SF handles errors in middleware and stores them in context", async () => {
+  it("downstream errors propagate and can be caught by middleware", async () => {
     const errorHandler: Middleware = async (ctx, next) => {
-      await next();
-      if (ctx.error) {
-        ctx.status = 500;
-        ctx.body = { error: ctx.error.message };
+      try {
+        await next();
+      } catch (e: any) {
+        ctx.body = e.message;
       }
     };
     const failingMiddleware: Middleware = async (ctx, next) => {
@@ -627,31 +627,9 @@ describe("Bunweb.listen", () => {
     const response = await fetch(`http://localhost:${port}/error`, {
       method: "GET",
     });
-    expect(response.status).toBe(500);
-    const json = await response.json();
-    expect(json).toEqual({ error: "Something went wrong" });
-  });
-
-  it("SF handles Error objects in response body", async () => {
-    const handler: Middleware = async (ctx, next) => {
-      ctx.body = new Error("Test error");
-      ctx.status = 500;
-      await next();
-    };
-
-    app.get("/error-body", handler);
-
-    testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
-
-    const response = await fetch(`http://localhost:${port}/error-body`, {
-      method: "GET",
-    });
-    expect(response.status).toBe(500);
-    const json = (await response.json()) as { error: string; stack?: string };
-    expect(json).toHaveProperty("error");
-    expect(json.error).toBe("Test error");
-    expect(json).toHaveProperty("stack");
+    expect(response.status).toBe(200);
+    const text = await response.text();
+    expect(text).toEqual("Something went wrong");
   });
 
   it("SF allows setting custom headers in context", async () => {

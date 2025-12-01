@@ -3,8 +3,7 @@ import { Context } from "./context";
 
 /**
  * Middleware composer that executes middlewares in onion-like fashion.
- * Errors are stored in ctx.error and the chain continues, allowing
- * downstream middleware to handle errors.
+ * Errors propagate normally and can be caught by middleware using try-catch.
  */
 export class Onion {
   /** Array of middleware functions to execute */
@@ -24,9 +23,7 @@ export class Onion {
 
   /**
    * Executes all middlewares in order, wrapping the context.
-   * Errors are caught and stored in ctx.error instead of being rethrown immediately.
-   * If an error exists and status is still 200 after all middleware executes,
-   * the status is automatically set to 500 (unhandled server error).
+   * Errors propagate normally and can be caught by middleware using try-catch.
    * @param ctx - Context object passed through the middleware chain
    */
   async run(ctx: Context): Promise<void> {
@@ -60,25 +57,7 @@ export class Onion {
       };
 
       // Execute the current middleware
-      try {
-        await middleware!(ctx, next);
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err));
-        // Programming errors should still throw (these indicate bugs)
-        const isProgrammingError =
-          error.message === "next() called multiple times" ||
-          error.message.includes("Middleware resolved before downstream");
-        if (isProgrammingError) {
-          throw error;
-        }
-        // Koa-style error handling: store runtime errors in context
-        // This allows downstream middleware to handle the error.
-        // If multiple middlewares throw erros, only the first one is stored.
-        // FIXME: stop storing erorr
-        if (!ctx.error) {
-          ctx.error = error;
-        }
-      }
+      await middleware!(ctx, next);
 
       // check that downstream middleware awaits next()
       if (nextCalled && !nextResolved) {

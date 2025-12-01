@@ -235,8 +235,6 @@ export class Bunweb implements Request {
 
 /**
  * FIXME:
- * 5. stop setting ctx.error! propagate errors through chain and let developer decide how to treat them.
- * 6. stop setting ctx.status on error! Let application decide that.
  * 7. implement ctx.error(status, message) which:
  *      - create http error object; sets its status and message and throws it
  * 8. ctx.status should be 404 by default!
