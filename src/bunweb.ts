@@ -233,14 +233,6 @@ export class Bunweb implements Request {
 
 /**
  * FIXME:
- * 2. The middleware chain (including .use() handlers) MUST write a response
- *    (e.g., ctx.(body|status)). otherwise, return 404
- *    Test that should fail: "executes use middlewares before method-specific middlewares for GET, POST, PUT"
- *    The general rule is:
- *      1. Route not matched: 404
- *      2. Route matched, no body && no status written: 404
- *      3. Route matched, no body but status written: status
- *      4. Route matched, body but no status written: 200
  * 3. if we register .use(/:dynamic, m1) then .use(/static, m2), getting /static should:
  *      - trigger BOTH m1,m2, not just m2
  *      - trigger m1,m2 in this order. Handlers run in REGISTRATION ORDER, not static over dynamic order

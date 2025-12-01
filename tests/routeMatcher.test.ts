@@ -8,7 +8,7 @@ import type { Middleware } from "../src/types";
 
 describe("RouteMatcher", () => {
   describe("insert() and match()", () => {
-    describe("prioritizes static segments over dynamic ones", () => {
+    describe("aggregates static and dynamic route matches", () => {
       const matcher = new RouteMatcher();
       let staticHandler: Middleware;
       let dynamicHandler: Middleware;
@@ -22,40 +22,46 @@ describe("RouteMatcher", () => {
         matcher.clear();
       });
 
-      it("one segment", () => {
+      it("one segment - aggregates both matches in registration order", () => {
         matcher.insert("/users", [staticHandler]);
         matcher.insert("/:id", [dynamicHandler]);
 
+        // Matching "/users" should return both handlers in registration order
         expect(matcher.match("/users")).toEqual({
-          middlewares: [staticHandler],
-          params: {},
+          middlewares: [staticHandler, dynamicHandler],
+          params: { id: "users" },
         });
+        // Matching "/123" only matches dynamic route
         expect(matcher.match("/123")).toEqual({
           middlewares: [dynamicHandler],
           params: { id: "123" },
         });
       });
-      it("two segments", () => {
+      it("two segments - aggregates both matches in registration order", () => {
         matcher.insert("/users/profile", [staticHandler]);
         matcher.insert("/users/:id", [dynamicHandler]);
 
+        // Matching "/users/profile" should return both handlers in registration order
         expect(matcher.match("/users/profile")).toEqual({
-          middlewares: [staticHandler],
-          params: {},
+          middlewares: [staticHandler, dynamicHandler],
+          params: { id: "profile" },
         });
+        // Matching "/users/123" only matches dynamic route
         expect(matcher.match("/users/123")).toEqual({
           middlewares: [dynamicHandler],
           params: { id: "123" },
         });
       });
-      it("three segment", () => {
+      it("three segment - aggregates both matches in registration order", () => {
         matcher.insert("/users/profile/name", [staticHandler]);
         matcher.insert("/users/:id/name", [dynamicHandler]);
 
+        // Matching "/users/profile/name" should return both handlers in registration order
         expect(matcher.match("/users/profile/name")).toEqual({
-          middlewares: [staticHandler],
-          params: {},
+          middlewares: [staticHandler, dynamicHandler],
+          params: { id: "profile" },
         });
+        // Matching "/users/123/name" only matches dynamic route
         expect(matcher.match("/users/123/name")).toEqual({
           middlewares: [dynamicHandler],
           params: { id: "123" },
@@ -146,6 +152,22 @@ describe("RouteMatcher", () => {
       expect(matcher.match("/users/profile/settings")).toEqual({
         middlewares: [deepStatic],
         params: {},
+      });
+    });
+
+    it("aggregates both static and dynamic route matches in registration order", () => {
+      const matcher = new RouteMatcher();
+      const m1: Middleware = async (ctx, next) => {};
+      const m2: Middleware = async (ctx, next) => {};
+
+      // Register dynamic route first, then static route
+      matcher.insert("/:dynamic", [m1]);
+      matcher.insert("/static", [m2]);
+
+      // Matching "/static" should return both m1 and m2 in registration order
+      expect(matcher.match("/static")).toEqual({
+        middlewares: [m1, m2],
+        params: { dynamic: "static" },
       });
     });
 
@@ -281,5 +303,20 @@ describe("RouteMatcher (prefix mode)", () => {
     matcher.insert("/api", [handler]);
 
     expect(matcher.match("/other")).toBeUndefined();
+  });
+
+  it("aggregates both static and dynamic route matches in prefix mode", () => {
+    const m1: Middleware = async (ctx, next) => {};
+    const m2: Middleware = async (ctx, next) => {};
+
+    // Register dynamic route first, then static route
+    matcher.insert("/:dynamic", [m1]);
+    matcher.insert("/static", [m2]);
+
+    // Matching "/static" should return both m1 and m2 in registration order
+    expect(matcher.match("/static")).toEqual({
+      middlewares: [m1, m2],
+      params: { dynamic: "static" },
+    });
   });
 });
