@@ -1,9 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it } from "bun:test";
-import {
-  RouteMatcher,
-  RouteMatcherMode,
-  type MatchResult,
-} from "../src/routeMatcher";
+import { RouteMatcher, RouteMatcherMode } from "../src/routeMatcher";
 import type { Middleware } from "../src/types";
 
 describe("RouteMatcher", () => {
@@ -14,8 +10,8 @@ describe("RouteMatcher", () => {
       let dynamicHandler: Middleware;
 
       beforeAll(() => {
-        staticHandler = async (ctx, next) => {};
-        dynamicHandler = async (ctx, next) => {};
+        staticHandler = async (_, __) => {};
+        dynamicHandler = async (_, __) => {};
       });
 
       afterEach(() => {
@@ -71,10 +67,10 @@ describe("RouteMatcher", () => {
 
     it("appends duplicate static and dynamic route handlers in registration order", () => {
       const matcher = new RouteMatcher();
-      const a: Middleware = async (ctx, next) => {};
-      const b: Middleware = async (ctx, next) => {};
-      const c: Middleware = async (ctx, next) => {};
-      const d: Middleware = async (ctx, next) => {};
+      const a: Middleware = async (_, __) => {};
+      const b: Middleware = async (_, __) => {};
+      const c: Middleware = async (_, __) => {};
+      const d: Middleware = async (_, __) => {};
 
       matcher.insert("/ping", [a]);
       matcher.insert("/ping", [b]);
@@ -93,8 +89,8 @@ describe("RouteMatcher", () => {
 
     it("prefers earlier registration when dynamic routes have equal specificity", () => {
       const matcher = new RouteMatcher();
-      const first: Middleware = async (ctx, next) => {};
-      const second: Middleware = async (ctx, next) => {};
+      const first: Middleware = async (_, __) => {};
+      const second: Middleware = async (_, __) => {};
 
       matcher.insert("/post/:id", [first]);
       matcher.insert("/post/:slug", [second]);
@@ -107,8 +103,8 @@ describe("RouteMatcher", () => {
 
     it("prefers earlier registration when dynamic routes have equal specificity (duplicate)", () => {
       const matcher = new RouteMatcher();
-      const first: Middleware = async (ctx, next) => {};
-      const second: Middleware = async (ctx, next) => {};
+      const first: Middleware = async (_, __) => {};
+      const second: Middleware = async (_, __) => {};
 
       matcher.insert("/post/id", [first]);
       matcher.insert("/post/id", [second]);
@@ -121,8 +117,8 @@ describe("RouteMatcher", () => {
 
     it("prefers more specific dynamic routes (more static segments)", () => {
       const matcher = new RouteMatcher();
-      const specific: Middleware = async (ctx, next) => {};
-      const generic: Middleware = async (ctx, next) => {};
+      const specific: Middleware = async (_, __) => {};
+      const generic: Middleware = async (_, __) => {};
 
       matcher.insert("/users/:id/orders/:orderId", [specific]);
       matcher.insert("/users/:id/:extra", [generic]);
@@ -139,8 +135,8 @@ describe("RouteMatcher", () => {
 
     it("falls back to dynamic routes when a static branch has no leaf", () => {
       const matcher = new RouteMatcher();
-      const dynamicHandler: Middleware = async (ctx, next) => {};
-      const deepStatic: Middleware = async (ctx, next) => {};
+      const dynamicHandler: Middleware = async (_, __) => {};
+      const deepStatic: Middleware = async (_, __) => {};
 
       matcher.insert("/users/:id", [dynamicHandler]);
       matcher.insert("/users/profile/settings", [deepStatic]);
@@ -157,8 +153,8 @@ describe("RouteMatcher", () => {
 
     it("aggregates both static and dynamic route matches in registration order", () => {
       const matcher = new RouteMatcher();
-      const m1: Middleware = async (ctx, next) => {};
-      const m2: Middleware = async (ctx, next) => {};
+      const m1: Middleware = async (_, __) => {};
+      const m2: Middleware = async (_, __) => {};
 
       // Register dynamic route first, then static route
       matcher.insert("/:dynamic", [m1]);
@@ -173,16 +169,16 @@ describe("RouteMatcher", () => {
 
     it('throws "Unexpected MODIFIER at X" for invalid path segments containing "*"', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users/bad*", [handler])).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected MODIFIER at 10"
       );
     });
 
     it("returns undefined when no routes match", () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
       matcher.insert("/users/:id", [handler]);
 
       expect(matcher.match("/unknown")).toBeUndefined();
@@ -190,46 +186,46 @@ describe("RouteMatcher", () => {
 
     it('throws "Unexpected MODIFIER at X" when path contains "*" at the beginning', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/*", [handler])).toThrow(
-        "Unexpected MODIFIER at 1",
+        "Unexpected MODIFIER at 1"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" when path contains "*" in the middle', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users/*", [handler])).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected MODIFIER at 7"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" when path contains "*" in a segment', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/files/*/nested", [handler])).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected MODIFIER at 7"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" when path contains "*" within a segment', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/test*path", [handler])).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected MODIFIER at 5"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for first occurrence when path contains multiple "*"', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/test*path*more", [handler])).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected MODIFIER at 5"
       );
     });
   });
@@ -237,233 +233,233 @@ describe("RouteMatcher", () => {
   describe("insert() - invalid character validation", () => {
     it('throws "Unexpected MODIFIER at X" for hash character (#)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users#123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for question mark (?)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/search?q=test", [handler])).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected MODIFIER at 7"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for ampersand (&)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users&admins", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for percent sign (%)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/files%20name", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for at sign (@)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/user@domain", [handler])).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected MODIFIER at 5"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for exclamation mark (!)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/important!", [handler])).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected MODIFIER at 10"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for space character', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/my path", [handler])).toThrow(
-        "Unexpected MODIFIER at 3",
+        "Unexpected MODIFIER at 3"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for square brackets ([)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users[123]", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for square brackets (])', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users]123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for curly braces ({)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users{123}", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for curly braces (})', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users}123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for parentheses (()', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users(123)", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for parentheses ())', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users)123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for plus sign (+)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users+admins", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for equals sign (=)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users=123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for pipe character (|)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users|admins", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for tilde (~)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users~123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for backtick (`)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users`123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for dollar sign ($)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users$123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for caret (^)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users^123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for comma (,)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users,123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for semicolon (;)', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users;123", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character at start of path', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("#invalid", [handler])).toThrow(
-        "Unexpected MODIFIER at 0",
+        "Unexpected MODIFIER at 0"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character in middle of path', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/api/users#admin", [handler])).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected MODIFIER at 10"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character at end of path', () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users/", [handler])).not.toThrow();
       expect(() => matcher.insert("/users#", [handler])).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it("allows valid characters: letters, numbers, slashes, dots, underscores, colons, hyphens", () => {
       const matcher = new RouteMatcher();
-      const handler: Middleware = async (ctx, next) => {};
+      const handler: Middleware = async (_, __) => {};
 
       expect(() => matcher.insert("/users", [handler])).not.toThrow();
       expect(() => matcher.insert("/users/123", [handler])).not.toThrow();
@@ -472,14 +468,14 @@ describe("RouteMatcher", () => {
       expect(() => matcher.insert("/users_profile", [handler])).not.toThrow();
       expect(() => matcher.insert("/users-admin", [handler])).not.toThrow();
       expect(() =>
-        matcher.insert("/api/v1/users/:id", [handler]),
+        matcher.insert("/api/v1/users/:id", [handler])
       ).not.toThrow();
     });
   });
 
   describe("match() - invalid character validation", () => {
     const matcher = new RouteMatcher();
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     beforeAll(() => {
       matcher.insert("/users", [handler]);
@@ -487,157 +483,157 @@ describe("RouteMatcher", () => {
 
     it('throws "Unexpected MODIFIER at X" for hash character (#)', () => {
       expect(() => matcher.match("/users#123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for question mark (?)', () => {
       expect(() => matcher.match("/users?name=arthur")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for ampersand (&)', () => {
       expect(() => matcher.match("/users&admins")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for percent sign (%)', () => {
       expect(() => matcher.match("/files%20name")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for at sign (@)', () => {
       expect(() => matcher.match("/user@domain")).toThrow(
-        "Unexpected MODIFIER at 5",
+        "Unexpected MODIFIER at 5"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for exclamation mark (!)', () => {
       expect(() => matcher.match("/important!")).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected MODIFIER at 10"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for space character', () => {
       expect(() => matcher.match("/my path")).toThrow(
-        "Unexpected MODIFIER at 3",
+        "Unexpected MODIFIER at 3"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for square brackets ([)', () => {
       expect(() => matcher.match("/users[123]")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for square brackets (])', () => {
       expect(() => matcher.match("/users]123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for curly braces ({)', () => {
       expect(() => matcher.match("/users{123}")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for curly braces (})', () => {
       expect(() => matcher.match("/users}123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for parentheses (()', () => {
       expect(() => matcher.match("/users(123)")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for parentheses ())', () => {
       expect(() => matcher.match("/users)123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for plus sign (+)', () => {
       expect(() => matcher.match("/users+admins")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for equals sign (=)', () => {
       expect(() => matcher.match("/users=123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for pipe character (|)', () => {
       expect(() => matcher.match("/users|admins")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for tilde (~)', () => {
       expect(() => matcher.match("/users~123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for backtick (`)', () => {
       expect(() => matcher.match("/users`123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for dollar sign ($)', () => {
       expect(() => matcher.match("/users$123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for caret (^)', () => {
       expect(() => matcher.match("/users^123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for comma (,)', () => {
       expect(() => matcher.match("/users,123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for semicolon (;)', () => {
       expect(() => matcher.match("/users;123")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" for wildcard (*)', () => {
       expect(() => matcher.match("/users/*")).toThrow(
-        "Unexpected MODIFIER at 7",
+        "Unexpected MODIFIER at 7"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character at start of path', () => {
       expect(() => matcher.match("#invalid")).toThrow(
-        "Unexpected MODIFIER at 0",
+        "Unexpected MODIFIER at 0"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character in middle of path', () => {
       expect(() => matcher.match("/api/users#admin")).toThrow(
-        "Unexpected MODIFIER at 10",
+        "Unexpected MODIFIER at 10"
       );
     });
 
     it('throws "Unexpected MODIFIER at X" at correct index for invalid character at end of path', () => {
       expect(() => matcher.match("/users#")).toThrow(
-        "Unexpected MODIFIER at 6",
+        "Unexpected MODIFIER at 6"
       );
     });
 
@@ -655,9 +651,9 @@ describe("RouteMatcher", () => {
   describe("clear()", () => {
     it("clears all registered routes", () => {
       const matcher = new RouteMatcher();
-      const a: Middleware = async (ctx, next) => {};
-      const b: Middleware = async (ctx, next) => {};
-      const c: Middleware = async (ctx, next) => {};
+      const a: Middleware = async (_, __) => {};
+      const b: Middleware = async (_, __) => {};
+      const c: Middleware = async (_, __) => {};
 
       matcher.insert("/users/:id", [a]);
       matcher.insert("/ping", [b]);
@@ -691,10 +687,10 @@ describe("RouteMatcher (prefix mode)", () => {
   });
 
   it("accumulates prefix middlewares along the matched path", () => {
-    const api: Middleware = async (ctx, next) => {};
-    const users: Middleware = async (ctx, next) => {};
-    const users2: Middleware = async (ctx, next) => {};
-    const user: Middleware = async (ctx, next) => {};
+    const api: Middleware = async (_, __) => {};
+    const users: Middleware = async (_, __) => {};
+    const users2: Middleware = async (_, __) => {};
+    const user: Middleware = async (_, __) => {};
 
     matcher.insert("/api", [api]);
     matcher.insert("/api/users", [users]);
@@ -716,7 +712,7 @@ describe("RouteMatcher (prefix mode)", () => {
   });
 
   it("returns empty when no prefix matches", () => {
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     matcher.insert("/api", [handler]);
 
@@ -724,8 +720,8 @@ describe("RouteMatcher (prefix mode)", () => {
   });
 
   it("aggregates both static and dynamic route matches in prefix mode", () => {
-    const m1: Middleware = async (ctx, next) => {};
-    const m2: Middleware = async (ctx, next) => {};
+    const m1: Middleware = async (_, __) => {};
+    const m2: Middleware = async (_, __) => {};
 
     // Register dynamic route first, then static route
     matcher.insert("/:dynamic", [m1]);

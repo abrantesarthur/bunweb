@@ -6,17 +6,17 @@ import { Context } from "../src/context";
 describe("Onion.run", () => {
   it("awaits middlewares in onion order when each awaits next", async () => {
     const calls: string[] = [];
-    const m1: Middleware = async (ctx, next) => {
+    const m1: Middleware = async (_, next) => {
       calls.push("m1 before");
-      await next?.();
+      await next();
       calls.push("m1 after");
     };
-    const m2: Middleware = async (ctx, next) => {
+    const m2: Middleware = async (_, next) => {
       calls.push("m2 before");
-      await next?.();
+      await next();
       calls.push("m2 after");
     };
-    const m3: Middleware = async (ctx, next) => {
+    const m3: Middleware = async (_, __) => {
       calls.push("m3");
     };
     const onion = new Onion([m1, m2, m3]);
@@ -60,7 +60,7 @@ describe("Onion.run", () => {
     const ctx = new Context(new Request("http://localhost/test"));
 
     await expect(onion.run(ctx)).rejects.toThrow(
-      "next() called multiple times",
+      "next() called multiple times"
     );
   });
 
@@ -74,7 +74,7 @@ describe("Onion.run", () => {
     const ctx = new Context(new Request("http://localhost/test"));
 
     expect(onion.run(ctx)).rejects.toThrow(
-      "Middleware resolved before downstream. You are probably missing an await or return.",
+      "Middleware resolved before downstream. You are probably missing an await or return."
     );
   });
 
@@ -114,15 +114,15 @@ describe("Onion.run", () => {
   it("downstream errors propagate and can be caught by middleware", async () => {
     const calls: string[] = [];
     const onion = new Onion([
-      async (ctx, next) => {
+      async (_ctx, next) => {
         calls.push("before error");
         try {
           await next();
-        } catch (e: any) {
+        } catch (_e: unknown) {
           calls.push("after error");
         }
       },
-      async (ctx, next) => {
+      async (_ctx, _next) => {
         calls.push("throwing middleware");
         throw new Error("Runtime error");
       },

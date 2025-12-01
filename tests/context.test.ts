@@ -70,7 +70,7 @@ describe("Context.searchParams", () => {
 
   it("should parse parameter with dot in key", () => {
     const ctx = new Context(
-      new Request("http://localhost/users?hub.token=123"),
+      new Request("http://localhost/users?hub.token=123")
     );
     expect(ctx.searchParams.get("hub.token")).toBe("123");
     expect(ctx.searchParams.has("hub.token")).toBe(true);
@@ -80,8 +80,8 @@ describe("Context.searchParams", () => {
   it("should parse parameters with special characters in keys", () => {
     const ctx = new Context(
       new Request(
-        "http://localhost/test?user-name=test&user_name=test2&api.key=secret",
-      ),
+        "http://localhost/test?user-name=test&user_name=test2&api.key=secret"
+      )
     );
     expect(ctx.searchParams.get("user-name")).toBe("test");
     expect(ctx.searchParams.get("user_name")).toBe("test2");
@@ -91,7 +91,7 @@ describe("Context.searchParams", () => {
 
   it("should parse parameters with special characters in values", () => {
     const ctx = new Context(
-      new Request("http://localhost/test?message=hello%20world&token=a.b-c_d"),
+      new Request("http://localhost/test?message=hello%20world&token=a.b-c_d")
     );
     expect(ctx.searchParams.get("message")).toBe("hello world");
     expect(ctx.searchParams.get("token")).toBe("a.b-c_d");
@@ -101,8 +101,8 @@ describe("Context.searchParams", () => {
   it("should decode URL-encoded characters", () => {
     const ctx = new Context(
       new Request(
-        "http://localhost/test?email=user%40example.com&query=hello%20world",
-      ),
+        "http://localhost/test?email=user%40example.com&query=hello%20world"
+      )
     );
     expect(ctx.searchParams.get("email")).toBe("user@example.com");
     expect(ctx.searchParams.get("query")).toBe("hello world");
@@ -111,7 +111,7 @@ describe("Context.searchParams", () => {
 
   it("should handle empty parameter values", () => {
     const ctx = new Context(
-      new Request("http://localhost/test?empty=&key=value"),
+      new Request("http://localhost/test?empty=&key=value")
     );
     expect(ctx.searchParams.get("empty")).toBe("");
     expect(ctx.searchParams.get("key")).toBe("value");
@@ -127,7 +127,7 @@ describe("Context.searchParams", () => {
 
   it("should handle duplicate keys with last value winning", () => {
     const ctx = new Context(
-      new Request("http://localhost/test?key=first&key=second"),
+      new Request("http://localhost/test?key=first&key=second")
     );
     expect(ctx.searchParams.get("key")).toBe("second");
     expect(ctx.searchParams.size).toBe(1);
@@ -136,8 +136,8 @@ describe("Context.searchParams", () => {
   it("should parse complex real-world example with multiple parameter types", () => {
     const ctx = new Context(
       new Request(
-        "http://localhost/users?hub.token=abc123&user-id=456&email=test%40example.com&filter=active&page=1",
-      ),
+        "http://localhost/users?hub.token=abc123&user-id=456&email=test%40example.com&filter=active&page=1"
+      )
     );
     expect(ctx.searchParams.get("hub.token")).toBe("abc123");
     expect(ctx.searchParams.get("user-id")).toBe("456");
