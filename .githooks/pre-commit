@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Pre-commit hook to run code quality checks
+# Exits with code 1 if any check fails
+
+set -e
+
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT"
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Check for console statements (blocks commit)
+echo "  Checking for console statements..."
+"$PROJECT_ROOT/scripts/check-console.sh" || exit 1
+
+# 2. Check for TODO/FIXME comments (warns only)
+echo "  Checking for TODO/FIXME comments..."
+"$PROJECT_ROOT/scripts/check-todos.sh" || true
+
+# 3. TypeScript type checking
+echo "  Running TypeScript type check..."
+bunx tsc --noEmit || {
+  echo "❌ TypeScript type check failed"
+  exit 1
+}
+
+# 4. ESLint on staged files
+echo "  Running ESLint..."
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' || true)
+if [ -n "$STAGED_FILES" ]; then
+  echo "$STAGED_FILES" | xargs bunx eslint --max-warnings=0 --no-warn-ignored || {
+    echo "❌ ESLint check failed"
+    exit 1
+  }
+fi
+
+# 5. Prettier check on staged files
+echo "  Running Prettier check..."
+if [ -n "$STAGED_FILES" ]; then
+  echo "$STAGED_FILES" | xargs bunx prettier --check || {
+    echo "❌ Prettier check failed. Run 'bun run format' to fix formatting."
+    exit 1
+  }
+fi
+
+# 6. Run tests
+echo "  Running tests..."
+set +e  # Temporarily disable exit on error to capture test output
+TEST_OUTPUT=$(bun test --dots 2>&1)
+TEST_EXIT_CODE=$?
+set -e  # Re-enable exit on error
+# Show only summary for passing tests, full output for failures
+if [ $TEST_EXIT_CODE -eq 0 ]; then
+  echo "$TEST_OUTPUT" | grep -E "(pass|fail|Ran [0-9]+ tests)"
+else
+  echo "$TEST_OUTPUT"
+  echo "❌ Tests failed"
+  exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+exit 0
+

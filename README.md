@@ -18,6 +18,31 @@ A koa-like web framework based on Bun's server.
 
 - Does not support specifying middlewares with wildcards (e.g., .use(/x/y/:id\*) is forbidden)
 
+## Development
+
+### Git Hooks
+
+This repository includes pre-commit hooks that run code quality checks. To set them up, run:
+
+```bash
+bun run setup-hooks
+```
+
+Or manually:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The pre-commit hook will:
+
+- Check for console statements
+- Check for TODO/FIXME comments (warning only)
+- Run TypeScript type checking
+- Run ESLint on staged files
+- Check Prettier formatting
+- Run tests (with minimal output)
+
 ## Future Improvements
 
 - Improve error handling. Instead of propagating raw errors, introduce a final ctx.onerror handler that treats erros accordingly. Take koa's error handling as inspiration. See koa/lib/application.js' handleRequest for inspiration.

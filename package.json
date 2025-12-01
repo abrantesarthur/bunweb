@@ -24,7 +24,8 @@
     "lint:fix": "bunx eslint --fix src/**/*.ts tests/**/*.ts",
     "format": "bunx prettier --write \"src/**/*.ts\" \"tests/**/*.ts\"",
     "format:check": "bunx prettier --check \"src/**/*.ts\" \"tests/**/*.ts\"",
-    "type-check": "bunx tsc --noEmit"
+    "type-check": "bunx tsc --noEmit",
+    "setup-hooks": "git config core.hooksPath .githooks"
   },
   "license": "MIT",
   "devDependencies": {
