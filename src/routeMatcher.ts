@@ -1,5 +1,6 @@
 import type { BaseMiddleware } from "./types";
 
+const INVALID_CHARS = /[^A-Za-z0-9\/._:-]/;
 const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
 const DYNAMIC_KEY = ":";
@@ -56,9 +57,9 @@ export class RouteMatcher {
    */
   insert(path: string, middlewares: BaseMiddleware[]): void {
     // Check for wildcard character (*) in the path
-    const wildcardIndex = path.indexOf("*");
-    if (wildcardIndex !== -1) {
-      throw new Error(`Unexpected wildcard MODIFIER at ${wildcardIndex}`);
+    const invalidChar = INVALID_CHARS.exec(path);
+    if (invalidChar) {
+      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
     }
 
     const segments = this.splitPath(path);

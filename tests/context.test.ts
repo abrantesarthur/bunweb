@@ -52,4 +52,3 @@ describe("Context.status", () => {
     expect(ctx.status).toBe(500);
   });
 });
-
