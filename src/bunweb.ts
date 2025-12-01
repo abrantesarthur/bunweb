@@ -230,10 +230,3 @@ export class Bunweb implements Request {
     this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
   };
 }
-
-/**
- * FIXME:
- * - Improve error handling. Instead of propagating raw errors, introduce a final ctx.onerror
- * handler that treats erros accordingly. Take koa's error handling as inspiration. See
- * koa/lib/application.js' handleRequest.
- */
