@@ -167,8 +167,10 @@ export class Bunweb implements Request {
           const useMiddlewares = useMatch?.middlewares ?? [];
           const useParams = useMatch?.params ?? {};
 
-          // Method-specific params completely replace prefix params when present
-          ctx.params = methodMatch ? methodParams : useParams;
+          // Merge method-specific params with prefix params, preserving prefix params when keys conflict
+          ctx.params = methodMatch
+            ? { ...methodParams, ...useParams }
+            : useParams;
 
           // Compose middlewares using Onion
           const onion = new Onion([useMiddlewares, methodMiddlewares]);
@@ -233,13 +235,6 @@ export class Bunweb implements Request {
 
 /**
  * FIXME:
- * 3. if we register .use(/:dynamic, m1) then .use(/static, m2), getting /static should:
- *      - trigger BOTH m1,m2, not just m2
- *      - trigger m1,m2 in this order. Handlers run in REGISTRATION ORDER, not static over dynamic order
- * 4. method-specific route parameters DO NOT override prefix route parameters.
- *    if we register use(/users/:id) and get(/users/:uid) get Get /users/123, the params should contain
- *    both {id: 123, uid:123} instead of just {uid: 123}
- *    Tests taht should fail: method-specific route parameters override prefix route parameters
  * 5. stop setting ctx.error! propagate errors through chain and let developer decide how to treat them.
  * 6. stop setting ctx.status on error! Let application decide that.
  * 7. implement ctx.error(status, message) which:

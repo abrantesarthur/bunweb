@@ -392,7 +392,7 @@ describe("Bunweb.listen", () => {
     ]);
   });
 
-  it("OK executes middlewares according to registration order", async () => {
+  it("executes middlewares according to registration order", async () => {
     const use1: Middleware = async (ctx, next) => {
       ctx.body = {};
       calls.push("use1");
@@ -553,7 +553,7 @@ describe("Bunweb.listen", () => {
     expect(json).toEqual({ userId: "123", postId: "456" });
   });
 
-  it("SF method-specific route parameters override prefix route parameters", async () => {
+  it("method-specific route parameters do not override prefix route parameters", async () => {
     let capturedParams: Record<string, string> = {};
     const useHandler: Middleware = async (ctx, next) => {
       await next();
@@ -575,7 +575,7 @@ describe("Bunweb.listen", () => {
     });
     expect(response.status).toBe(200);
     // Method-specific params should override prefix params
-    expect(capturedParams).toEqual({ userId: "123" });
+    expect(capturedParams).toEqual({ userId: "123", id: "123" });
   });
 
   it("OK provides base URL properties in context", async () => {
