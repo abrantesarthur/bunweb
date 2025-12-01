@@ -8,5 +8,6 @@
     "declaration": true,
     "emitDeclarationOnly": false
   },
-  "exclude": ["tests", "**/*.test.ts"]
+  "include": ["src/**/*"],
+  "exclude": ["tests", "**/*.test.ts", "eslint.config.js", "eslint.config.d.ts"]
 }
