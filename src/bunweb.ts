@@ -126,12 +126,12 @@ export class Bunweb implements Request {
       port,
       hostname,
       fetch: async (request: globalThis.Request) => {
+        const ctx = new Context(request);
         try {
           // Extract method and path from request
           const method = request.method.toLowerCase();
           const url = new URL(request.url);
           const path = url.pathname;
-          const ctx = new Context(request);
 
           // Map HTTP method to Method enum
           let methodEnum: Method;
@@ -181,11 +181,9 @@ export class Bunweb implements Request {
           // Convert context to Response
           return ctx.toResponse();
         } catch (error) {
-          // Error handling: return 500 if middleware throws
-          console.error("Server error:", error);
-          return new globalThis.Response("Internal Server Error", {
-            status: 500,
-          });
+          console.error("Internal server error:", error);
+          ctx.status = 500;
+          return ctx.toResponse();
         }
       },
     });

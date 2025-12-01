@@ -141,39 +141,6 @@ describe("Onion.run", () => {
     ]);
   });
 
-  // FIXME: create Context.onError
-  it.skip("allows downstream middleware to handle errors", async () => {
-    const calls: string[] = [];
-    const onion = new Onion([
-      async (ctx, next) => {
-        calls.push("handler 1 start");
-        await next();
-        calls.push("handler 1 end");
-      },
-      async (ctx, next) => {
-        calls.push("handler 2 start");
-        await next();
-        calls.push("handler 2 end");
-      },
-      async () => {
-        calls.push("error source");
-        throw new Error("Error occurred");
-      },
-    ]);
-    const ctx = new Context(new Request("http://localhost/test"));
-
-    await onion.run(ctx);
-
-    expect(calls).toEqual([
-      "handler 1 start",
-      "handler 2 start",
-      "error source",
-      "handler 2 end",
-      "handler 1 caught error",
-      "handler 1 end",
-    ]);
-  });
-
   it("accepts arrays of middlewares and flattens them", async () => {
     const calls: string[] = [];
     const m1: Middleware = async (ctx, next) => {
