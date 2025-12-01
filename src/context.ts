@@ -104,7 +104,7 @@ export class Context {
   set status(value: number) {
     if (typeof value !== "number" || value < 100 || value > 999) {
       throw new Error(
-        `Status code must be a number between 100 and 999, got: ${value}`,
+        `Status code must be a number between 100 and 999, got: ${value}`
       );
     }
     this._explicitStatus = true;

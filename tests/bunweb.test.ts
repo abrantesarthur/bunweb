@@ -28,14 +28,14 @@ describe("Bunweb.registerRoute", () => {
       bunweb.routeMatchersByMethod[method] = new RouteMatcher();
     }
     bunweb.routeMatchersByMethod[Method.Use] = new RouteMatcher(
-      RouteMatcherMode.Prefix,
+      RouteMatcherMode.Prefix
     );
   });
 
   it("stores the route on the matching method with flattened middlewares", () => {
-    const h1: Middleware = async (ctx, next) => {};
-    const h2: Middleware = async (ctx, next) => {};
-    const h3: Middleware = async (ctx, next) => {};
+    const h1: Middleware = async (_, __) => {};
+    const h2: Middleware = async (_, __) => {};
+    const h3: Middleware = async (_, __) => {};
 
     bunweb.registerRoute("/flatten", Method.Get, h1, [h2, h3]);
 
@@ -44,85 +44,82 @@ describe("Bunweb.registerRoute", () => {
       params: {},
     });
     expect(
-      bunweb.routeMatchersByMethod[Method.Post].match("/flatten"),
+      bunweb.routeMatchersByMethod[Method.Post].match("/flatten")
     ).toBeUndefined();
     expect(
-      bunweb.routeMatchersByMethod[Method.Put].match("/flatten"),
+      bunweb.routeMatchersByMethod[Method.Put].match("/flatten")
     ).toBeUndefined();
   });
 
   it("throws when a middleware array contains a non-function entry", () => {
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     expect(() =>
-      bunweb.registerRoute("/bad", Method.Post, [handler, "oops" as unknown]),
+      bunweb.registerRoute("/bad", Method.Post, [handler, "oops" as unknown])
     ).toThrow('The path "/bad" contains a non-functional "post" handler.');
 
     expect(
-      bunweb.routeMatchersByMethod[Method.Post].match("/bad"),
+      bunweb.routeMatchersByMethod[Method.Post].match("/bad")
     ).toBeUndefined();
   });
 
   it("throws when non-function middleware arguments are provided outside arrays", () => {
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     expect(() =>
-      bunweb.registerRoute("/skip", Method.Put, handler, null),
+      bunweb.registerRoute("/skip", Method.Put, handler, null)
     ).toThrow('The path "/skip" contains a non-functional "put" handler.');
 
     expect(
-      bunweb.routeMatchersByMethod[Method.Put].match("/skip"),
+      bunweb.routeMatchersByMethod[Method.Put].match("/skip")
     ).toBeUndefined();
   });
 
   it("stores the route on Method.Use with flattened middlewares", () => {
-    const h1: Middleware = async (ctx, next) => {};
-    const h2: Middleware = async (ctx, next) => {};
-    const h3: Middleware = async (ctx, next) => {};
+    const h1: Middleware = async (_, __) => {};
+    const h2: Middleware = async (_, __) => {};
+    const h3: Middleware = async (_, __) => {};
 
     bunweb.registerRoute("/flatten-use", Method.Use, h1, [h2, h3]);
 
     expect(
-      bunweb.routeMatchersByMethod[Method.Use].match("/flatten-use"),
+      bunweb.routeMatchersByMethod[Method.Use].match("/flatten-use")
     ).toEqual({
       middlewares: [h1, h2, h3],
       params: {},
     });
     expect(
-      bunweb.routeMatchersByMethod[Method.Get].match("/flatten-use"),
+      bunweb.routeMatchersByMethod[Method.Get].match("/flatten-use")
     ).toBeUndefined();
     expect(
-      bunweb.routeMatchersByMethod[Method.Post].match("/flatten-use"),
+      bunweb.routeMatchersByMethod[Method.Post].match("/flatten-use")
     ).toBeUndefined();
     expect(
-      bunweb.routeMatchersByMethod[Method.Put].match("/flatten-use"),
+      bunweb.routeMatchersByMethod[Method.Put].match("/flatten-use")
     ).toBeUndefined();
   });
 
   it("throws when a middleware array contains a non-function entry for Method.Use", () => {
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     expect(() =>
-      bunweb.registerRoute("/bad-use", Method.Use, [
-        handler,
-        "oops" as unknown,
-      ]),
+      bunweb.registerRoute("/bad-use", Method.Use, [handler, "oops" as unknown])
     ).toThrow('The path "/bad-use" contains a non-functional "use" handler.');
 
     expect(
-      bunweb.routeMatchersByMethod[Method.Use].match("/bad-use"),
+      bunweb.routeMatchersByMethod[Method.Use].match("/bad-use")
     ).toBeUndefined();
   });
 
   it("throws when non-function middleware arguments are provided outside arrays for Method.Use", () => {
-    const handler: Middleware = async (ctx, next) => {};
+    const handler: Middleware = async (_, __) => {};
 
     expect(() =>
-      bunweb.registerRoute("/skip-use", Method.Use, handler, null),
+      bunweb.registerRoute("/skip-use", Method.Use, handler, null)
     ).toThrow('The path "/skip-use" contains a non-functional "use" handler.');
 
     expect(
-      bunweb.routeMatchersByMethod[Method.Use].match("/skip-use"),
+      bunweb.routeMatchersByMethod[Method.Use].match("/skip-use")
     ).toBeUndefined();
   });
 });
@@ -156,7 +153,7 @@ describe("Bunweb.listen", () => {
     app.use("/test", use);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const response = await fetch(`http://localhost:${port}/test`, {
@@ -168,7 +165,7 @@ describe("Bunweb.listen", () => {
 
   it("should return 404 for unmatched routes", async () => {
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/test`, {
@@ -179,7 +176,7 @@ describe("Bunweb.listen", () => {
   });
 
   it("should return 404 for matched routes without body written and without status set", async () => {
-    const get: Middleware = async (ctx, next) => {
+    const get: Middleware = async (_, next) => {
       calls.push("get");
       await next();
     };
@@ -187,7 +184,7 @@ describe("Bunweb.listen", () => {
     app.get("/test", get);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/test`, {
@@ -208,7 +205,7 @@ describe("Bunweb.listen", () => {
     app.get("/test", get);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/test`, {
@@ -229,7 +226,7 @@ describe("Bunweb.listen", () => {
     app.get("/test", get);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/test`, {
@@ -251,7 +248,7 @@ describe("Bunweb.listen", () => {
     app.get("/test", get);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const getResponse = await fetch(`http://localhost:${port}/test`, {
       method: "GET",
@@ -267,19 +264,19 @@ describe("Bunweb.listen", () => {
       calls.push("use1");
       await next();
     };
-    const use2: Middleware = async (ctx, next) => {
+    const use2: Middleware = async (_, next) => {
       calls.push("use2");
       await next();
     };
-    const get1: Middleware = async (ctx, next) => {
+    const get1: Middleware = async (_, next) => {
       calls.push("get1");
       await next();
     };
-    const post1: Middleware = async (ctx, next) => {
+    const post1: Middleware = async (_, next) => {
       calls.push("post1");
       await next();
     };
-    const put1: Middleware = async (ctx, next) => {
+    const put1: Middleware = async (_, next) => {
       calls.push("put1");
       await next();
     };
@@ -290,7 +287,7 @@ describe("Bunweb.listen", () => {
     app.use("/test", use1, use2);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/test`, {
@@ -322,23 +319,23 @@ describe("Bunweb.listen", () => {
       calls.push("use-/path");
       await next();
     };
-    const usePathX: Middleware = async (ctx, next) => {
+    const usePathX: Middleware = async (_, next) => {
       calls.push("use-/path/x");
       await next();
     };
-    const usePathXY: Middleware = async (ctx, next) => {
+    const usePathXY: Middleware = async (_, next) => {
       calls.push("use-/path/x/y");
       await next();
     };
-    const getPathXYZ: Middleware = async (ctx, next) => {
+    const getPathXYZ: Middleware = async (_, next) => {
       calls.push("get-/path/x/y/z");
       await next();
     };
-    const postPathXYZ: Middleware = async (ctx, next) => {
+    const postPathXYZ: Middleware = async (_, next) => {
       calls.push("post-/path/x/y/z");
       await next();
     };
-    const putPathXYZ: Middleware = async (ctx, next) => {
+    const putPathXYZ: Middleware = async (_, next) => {
       calls.push("put-/path/x/y/z");
       await next();
     };
@@ -351,7 +348,7 @@ describe("Bunweb.listen", () => {
     app.put("/path/x/y/z", putPathXYZ);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test GET
     const getResponse = await fetch(`http://localhost:${port}/path/x/y/z`, {
@@ -398,23 +395,23 @@ describe("Bunweb.listen", () => {
       calls.push("use1");
       await next();
     };
-    const use2: Middleware = async (ctx, next) => {
+    const use2: Middleware = async (_, next) => {
       calls.push("use2");
       await next();
     };
-    const use3: Middleware = async (ctx, next) => {
+    const use3: Middleware = async (_, next) => {
       calls.push("use3");
       await next();
     };
-    const get1: Middleware = async (ctx, next) => {
+    const get1: Middleware = async (_, next) => {
       calls.push("get1");
       await next();
     };
-    const get2: Middleware = async (ctx, next) => {
+    const get2: Middleware = async (_, next) => {
       calls.push("get2");
       await next();
     };
-    const get3: Middleware = async (ctx, next) => {
+    const get3: Middleware = async (_, next) => {
       calls.push("get3");
       await next();
     };
@@ -430,7 +427,7 @@ describe("Bunweb.listen", () => {
     app.get("/test", get3);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/test`, {
       method: "GET",
@@ -445,7 +442,7 @@ describe("Bunweb.listen", () => {
       calls.push("use1");
       await next();
     };
-    const use2: Middleware = async (ctx, next) => {
+    const use2: Middleware = async (_, next) => {
       calls.push("use2");
       await next();
     };
@@ -454,7 +451,7 @@ describe("Bunweb.listen", () => {
     // No .get("/test") registered
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/test`, {
       method: "GET",
@@ -466,11 +463,11 @@ describe("Bunweb.listen", () => {
   });
 
   it("executes middlewares according to registration order", async () => {
-    const staticMiddleware: Middleware = async (ctx, next) => {
+    const staticMiddleware: Middleware = async (_, next) => {
       calls.push("static");
       await next();
     };
-    const dynamicMiddleware: Middleware = async (ctx, next) => {
+    const dynamicMiddleware: Middleware = async (_, next) => {
       calls.push("dynamic");
       await next();
     };
@@ -492,12 +489,12 @@ describe("Bunweb.listen", () => {
     app.get("/files/static", getStatic);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     // Test static path - should match static, not dynamic
     const staticResponse = await fetch(
       `http://localhost:${port}/files/static`,
-      { method: "GET" },
+      { method: "GET" }
     );
     expect(staticResponse.status).toBe(200);
     expect(calls).toEqual(["dynamic", "static", "getDynamic", "getStatic"]);
@@ -520,7 +517,7 @@ describe("Bunweb.listen", () => {
     app.get("/users/:id", handler);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/users/123`, {
       method: "GET",
@@ -541,11 +538,11 @@ describe("Bunweb.listen", () => {
     app.get("/users/:userId/posts/:postId", handler);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(
       `http://localhost:${port}/users/123/posts/456`,
-      { method: "GET" },
+      { method: "GET" }
     );
     expect(response.status).toBe(200);
     expect(capturedParams).toEqual({ userId: "123", postId: "456" });
@@ -555,7 +552,7 @@ describe("Bunweb.listen", () => {
 
   it("method-specific route parameters do not override prefix route parameters", async () => {
     let capturedParams: Record<string, string> = {};
-    const useHandler: Middleware = async (ctx, next) => {
+    const useHandler: Middleware = async (_, next) => {
       await next();
     };
     const getHandler: Middleware = async (ctx, next) => {
@@ -568,7 +565,7 @@ describe("Bunweb.listen", () => {
     app.get("/users/:userId", getHandler);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/users/123`, {
       method: "GET",
@@ -579,42 +576,43 @@ describe("Bunweb.listen", () => {
   });
 
   it("OK provides base URL properties in context", async () => {
-    let capturedContext: any = {};
     const handler: Middleware = async (ctx, next) => {
-      capturedContext = {
+      ctx.body = {
         origin: ctx.origin,
         host: ctx.host,
         hostname: ctx.hostname,
         protocol: ctx.protocol,
       };
-      ctx.body = capturedContext;
       await next();
     };
 
     app.get("/test", handler);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/test`, {
       method: "GET",
     });
     expect(response.status).toBe(200);
-    expect(capturedContext.origin).toBe(`http://localhost:${port}`);
-    expect(capturedContext.host).toBe(`localhost:${port}`);
-    expect(capturedContext.hostname).toBe("localhost");
-    expect(capturedContext.protocol).toBe("http:");
+    const json = await response.body?.json();
+    expect(json).toEqual({
+      origin: `http://localhost:${port}`,
+      host: `localhost:${port}`,
+      hostname: "localhost",
+      protocol: "http:",
+    });
   });
 
   it("downstream errors propagate and can be caught by middleware", async () => {
     const errorHandler: Middleware = async (ctx, next) => {
       try {
         await next();
-      } catch (e: any) {
-        ctx.body = e.message;
+      } catch (e: unknown) {
+        ctx.body = e instanceof Error ? e.message : String(e);
       }
     };
-    const failingMiddleware: Middleware = async (ctx, next) => {
+    const failingMiddleware: Middleware = async (_, __) => {
       throw new Error("Something went wrong");
     };
 
@@ -622,7 +620,7 @@ describe("Bunweb.listen", () => {
     app.get("/error", failingMiddleware);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/error`, {
       method: "GET",
@@ -643,7 +641,7 @@ describe("Bunweb.listen", () => {
     app.get("/headers", handler);
 
     testServer = app.listen({ port: 0 });
-    const port = (testServer as any).port || 0;
+    const port = testServer.port || 0;
 
     const response = await fetch(`http://localhost:${port}/headers`, {
       method: "GET",

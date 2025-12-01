@@ -17,7 +17,3 @@ A koa-like web framework based on Bun's server.
 ## Limitations
 
 - Does not support specifying middlewares with wildcards (e.g., .use(/x/y/:id\*) is forbidden)
-
-## Future Improvements
-
-- Improve error handling. Instead of propagating raw errors, introduce a final ctx.onerror handler that treats erros accordingly. Take koa's error handling as inspiration. See koa/lib/application.js' handleRequest for inspiration.

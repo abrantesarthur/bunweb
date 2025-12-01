@@ -17,7 +17,7 @@ export class Onion {
   constructor(middlewares: (BaseMiddleware | BaseMiddleware[])[]) {
     // Flatten nested arrays and filter out non-functions
     this.middlewares = middlewares.flatMap((mw) =>
-      Array.isArray(mw) ? mw : [mw],
+      Array.isArray(mw) ? mw : [mw]
     );
   }
 
@@ -62,7 +62,7 @@ export class Onion {
       // check that downstream middleware awaits next()
       if (nextCalled && !nextResolved) {
         throw new Error(
-          "Middleware resolved before downstream. You are probably missing an await or return.",
+          "Middleware resolved before downstream. You are probably missing an await or return."
         );
       }
     };

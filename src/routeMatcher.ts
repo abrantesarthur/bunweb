@@ -1,6 +1,6 @@
 import type { BaseMiddleware } from "./types";
 
-const INVALID_CHARS = /[^A-Za-z0-9\/._:-]/;
+const INVALID_CHARS = /[^A-Za-z0-9/._:-]/;
 const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
 const DYNAMIC_KEY = ":";
@@ -135,7 +135,7 @@ export class RouteMatcher {
     node: Node,
     segments: string[],
     index: number,
-    params: Record<string, string>,
+    params: Record<string, string>
   ): MatchResult | undefined {
     // Base case: all segments consumed
     if (index >= segments.length) {
@@ -158,7 +158,7 @@ export class RouteMatcher {
           : params;
         const match = this.searchExact(child, segments, index + 1, childParams);
         return match ? [match] : [];
-      },
+      }
     );
 
     return this.aggregateMatches(matches, params);
@@ -190,7 +190,7 @@ export class RouteMatcher {
     segments: string[],
     index: number,
     collected: BaseMiddleware[],
-    params: Record<string, string>,
+    params: Record<string, string>
   ): MatchResult | undefined {
     // Collect middlewares from current node (prefix matching collects as we traverse)
     const nextCollected =
@@ -221,10 +221,10 @@ export class RouteMatcher {
           segments,
           index + 1,
           nextCollected,
-          childParams,
+          childParams
         );
         return match ? [match] : [];
-      },
+      }
     );
 
     const aggregated = this.aggregateMatches(matches, params);
@@ -248,7 +248,7 @@ export class RouteMatcher {
    */
   private getMatchingChildren(
     node: Node,
-    segment: string,
+    segment: string
   ): Array<{ child: Node; isDynamic: boolean }> {
     const staticChild = node.children.get(segment);
     const dynamicChild = node.children.get(DYNAMIC_KEY);
@@ -269,7 +269,7 @@ export class RouteMatcher {
    */
   private aggregateMatches(
     matches: MatchResult[],
-    baseParams: Record<string, string>,
+    baseParams: Record<string, string>
   ): MatchResult | undefined {
     if (matches.length === 0) {
       return undefined;

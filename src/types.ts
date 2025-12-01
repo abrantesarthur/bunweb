@@ -10,10 +10,10 @@ export type ExtractParams<P extends string> =
       ? { [K in Name]: string } & ExtractParams<`/${Rest}`>
       : ExtractParams<`/${Rest}`>
     : P extends `${infer _Prefix}:${infer Param}`
-    ? Param extends `${infer Name}`
-      ? { [K in Name]: string }
-      : {}
-    : {};
+      ? Param extends `${infer Name}`
+        ? { [K in Name]: string }
+        : Record<string, string>
+      : Record<string, string>;
 
 /**
  * Context with typed route parameters.

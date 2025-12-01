@@ -64,7 +64,7 @@ export class Bunweb implements Request {
     this.registerRoute(
       path,
       Method.Get,
-      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[])
     );
 
   /**
@@ -76,7 +76,7 @@ export class Bunweb implements Request {
     this.registerRoute(
       path,
       Method.Post,
-      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[])
     );
 
   /**
@@ -88,7 +88,7 @@ export class Bunweb implements Request {
     this.registerRoute(
       path,
       Method.Put,
-      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[])
     );
 
   /**
@@ -101,7 +101,7 @@ export class Bunweb implements Request {
     this.registerRoute(
       path,
       Method.Use,
-      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[]),
+      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[])
     );
 
   /**
@@ -130,10 +130,7 @@ export class Bunweb implements Request {
         try {
           // Extract method and path from request
           const method = request.method.toLowerCase();
-          const url = new URL(request.url);
-          const { path, searchParams } = ctx;
-
-          console.log({ path, searchParams });
+          const { path } = ctx;
 
           // Map HTTP method to Method enum
           let methodEnum: Method;
@@ -183,8 +180,11 @@ export class Bunweb implements Request {
           // Convert context to Response
           return ctx.toResponse();
         } catch (error) {
-          console.error("Internal server error:", error);
           ctx.status = 500;
+          ctx.body = {
+            error: "Internal server error",
+            message: error instanceof Error ? error.message : "Unknown error",
+          };
           return ctx.toResponse();
         }
       },
@@ -209,7 +209,7 @@ export class Bunweb implements Request {
           const fns = handler.filter((fn): fn is M => typeof fn === "function");
           if (fns.length !== handler.length) {
             throw new Error(
-              `The path "${path}" contains a non-functional "${method}" handler.`,
+              `The path "${path}" contains a non-functional "${method}" handler.`
             );
           }
           acc.push(...handler);
@@ -218,7 +218,7 @@ export class Bunweb implements Request {
 
         if (typeof handler !== "function") {
           throw new Error(
-            `The path "${path}" contains a non-functional "${method}" handler.`,
+            `The path "${path}" contains a non-functional "${method}" handler.`
           );
         }
 
@@ -226,7 +226,7 @@ export class Bunweb implements Request {
 
         return acc;
       },
-      [],
+      []
     );
 
     this.routeMatchersByMethod[method].insert(path, flatMiddlewares);
