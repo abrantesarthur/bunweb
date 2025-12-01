@@ -56,11 +56,7 @@ export class RouteMatcher {
    * @throws Error if path contains invalid segments or wildcard characters
    */
   insert(path: string, middlewares: BaseMiddleware[]): void {
-    // Check for wildcard character (*) in the path
-    const invalidChar = INVALID_CHARS.exec(path);
-    if (invalidChar) {
-      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
-    }
+    this.validatePath(path);
 
     const segments = this.splitPath(path);
     let current = this.root;
@@ -98,11 +94,7 @@ export class RouteMatcher {
    * @returns Match result with middlewares and params, or undefined if no match
    */
   match(path: string): MatchResult | undefined {
-    // Validate path format (same as insert)
-    const invalidChar = INVALID_CHARS.exec(path);
-    if (invalidChar) {
-      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
-    }
+    this.validatePath(path);
 
     const segments = this.splitPath(path);
     const result =
@@ -295,6 +287,18 @@ export class RouteMatcher {
       middlewares: aggregatedMiddlewares,
       params: aggregatedParams,
     };
+  }
+
+  /**
+   * Validates that a path does not contain invalid characters.
+   * @param path - Path to validate
+   * @throws Error if path contains invalid characters (e.g., "?", "#", "*")
+   */
+  private validatePath(path: string): void {
+    const invalidChar = INVALID_CHARS.exec(path);
+    if (invalidChar) {
+      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
+    }
   }
 
   private parseSegment(segment: string): {
