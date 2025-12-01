@@ -634,8 +634,8 @@ describe("Bunweb.listen", () => {
 
   it("SF allows setting custom headers in context", async () => {
     const handler: Middleware = async (ctx, next) => {
-      ctx.headers["X-Custom-Header"] = "custom-value";
-      ctx.headers["X-Another-Header"] = "another-value";
+      ctx.set("X-Custom-Header", "custom-value");
+      ctx.set("X-Another-Header", "another-value");
       ctx.body = "test";
       await next();
     };

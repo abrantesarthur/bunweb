@@ -233,11 +233,7 @@ export class Bunweb implements Request {
 
 /**
  * FIXME:
- * 7. implement ctx.error(status, message) which:
- *      - create http error object; sets its status and message and throws it
- * 9. Context.toResponse() should mimick koa's application.js/respond method
- *    Stringify the body instead of trying to transform errors
- * 10. ctx.headers is for reading IncomingHttpHeaders. To set response headers, use ctx.set(header, value)
- *    - ctx.headers should be implemented as a getter
- *    - test that should fail: allows setting custom headers in context
+ * - Improve error handling. Instead of propagating raw errors, introduce a final ctx.onerror
+ * handler that treats erros accordingly. Take koa's error handling as inspiration. See
+ * koa/lib/application.js' handleRequest.
  */

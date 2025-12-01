@@ -134,8 +134,25 @@ export class Context {
   hostname: string;
   /** Request protocol (e.g., "http:" or "https:") */
   protocol: string;
-  /** Custom response headers */
-  headers: Record<string, string> = {};
+  /** Internal storage for response headers */
+  private _responseHeaders: Record<string, string> = {};
+  /** Request headers (read-only) */
+  get headers(): Record<string, string> {
+    const headers: Record<string, string> = {};
+    this.request.headers.forEach((value, key) => {
+      headers[key] = value;
+    });
+    return headers;
+  }
+
+  /**
+   * Sets a response header.
+   * @param header - Header name
+   * @param value - Header value
+   */
+  set(header: string, value: string): void {
+    this._responseHeaders[header] = value;
+  }
 
   /**
    * Converts the context to an HTTP Response object.
@@ -144,7 +161,7 @@ export class Context {
    */
   toResponse(): globalThis.Response {
     let responseBody: string | null = null;
-    const headers: Record<string, string> = { ...this.headers };
+    const headers: Record<string, string> = { ...this._responseHeaders };
 
     if (this.body !== null && this.body !== undefined) {
       if (typeof this.body === "string") {
