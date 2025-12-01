@@ -94,9 +94,16 @@ export class RouteMatcher {
   /**
    * Matches a path against registered routes and returns middlewares with extracted parameters.
    * @param path - Request path to match (e.g., "/users/123")
+   * @throws Error if path contains invalid characters (e.g., "?", "#", "*")
    * @returns Match result with middlewares and params, or undefined if no match
    */
   match(path: string): MatchResult | undefined {
+    // Validate path format (same as insert)
+    const invalidChar = INVALID_CHARS.exec(path);
+    if (invalidChar) {
+      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
+    }
+
     const segments = this.splitPath(path);
     const result =
       this.mode === RouteMatcherMode.Prefix

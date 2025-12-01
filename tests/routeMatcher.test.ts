@@ -471,7 +471,184 @@ describe("RouteMatcher", () => {
       expect(() => matcher.insert("/users.profile", [handler])).not.toThrow();
       expect(() => matcher.insert("/users_profile", [handler])).not.toThrow();
       expect(() => matcher.insert("/users-admin", [handler])).not.toThrow();
-      expect(() => matcher.insert("/api/v1/users/:id", [handler])).not.toThrow();
+      expect(() =>
+        matcher.insert("/api/v1/users/:id", [handler]),
+      ).not.toThrow();
+    });
+  });
+
+  describe("match() - invalid character validation", () => {
+    const matcher = new RouteMatcher();
+    const handler: Middleware = async (ctx, next) => {};
+
+    beforeAll(() => {
+      matcher.insert("/users", [handler]);
+    });
+
+    it('throws "Unexpected MODIFIER at X" for hash character (#)', () => {
+      expect(() => matcher.match("/users#123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for question mark (?)', () => {
+      expect(() => matcher.match("/users?name=arthur")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for ampersand (&)', () => {
+      expect(() => matcher.match("/users&admins")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for percent sign (%)', () => {
+      expect(() => matcher.match("/files%20name")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for at sign (@)', () => {
+      expect(() => matcher.match("/user@domain")).toThrow(
+        "Unexpected MODIFIER at 5",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for exclamation mark (!)', () => {
+      expect(() => matcher.match("/important!")).toThrow(
+        "Unexpected MODIFIER at 10",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for space character', () => {
+      expect(() => matcher.match("/my path")).toThrow(
+        "Unexpected MODIFIER at 3",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for square brackets ([)', () => {
+      expect(() => matcher.match("/users[123]")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for square brackets (])', () => {
+      expect(() => matcher.match("/users]123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for curly braces ({)', () => {
+      expect(() => matcher.match("/users{123}")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for curly braces (})', () => {
+      expect(() => matcher.match("/users}123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for parentheses (()', () => {
+      expect(() => matcher.match("/users(123)")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for parentheses ())', () => {
+      expect(() => matcher.match("/users)123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for plus sign (+)', () => {
+      expect(() => matcher.match("/users+admins")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for equals sign (=)', () => {
+      expect(() => matcher.match("/users=123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for pipe character (|)', () => {
+      expect(() => matcher.match("/users|admins")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for tilde (~)', () => {
+      expect(() => matcher.match("/users~123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for backtick (`)', () => {
+      expect(() => matcher.match("/users`123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for dollar sign ($)', () => {
+      expect(() => matcher.match("/users$123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for caret (^)', () => {
+      expect(() => matcher.match("/users^123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for comma (,)', () => {
+      expect(() => matcher.match("/users,123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for semicolon (;)', () => {
+      expect(() => matcher.match("/users;123")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" for wildcard (*)', () => {
+      expect(() => matcher.match("/users/*")).toThrow(
+        "Unexpected MODIFIER at 7",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" at correct index for invalid character at start of path', () => {
+      expect(() => matcher.match("#invalid")).toThrow(
+        "Unexpected MODIFIER at 0",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" at correct index for invalid character in middle of path', () => {
+      expect(() => matcher.match("/api/users#admin")).toThrow(
+        "Unexpected MODIFIER at 10",
+      );
+    });
+
+    it('throws "Unexpected MODIFIER at X" at correct index for invalid character at end of path', () => {
+      expect(() => matcher.match("/users#")).toThrow(
+        "Unexpected MODIFIER at 6",
+      );
+    });
+
+    it("allows valid characters: letters, numbers, slashes, dots, underscores, colons, hyphens", () => {
+      expect(() => matcher.match("/users")).not.toThrow();
+      expect(() => matcher.match("/users/123")).not.toThrow();
+      expect(() => matcher.match("/users/:id")).not.toThrow();
+      expect(() => matcher.match("/users.profile")).not.toThrow();
+      expect(() => matcher.match("/users_profile")).not.toThrow();
+      expect(() => matcher.match("/users-admin")).not.toThrow();
+      expect(() => matcher.match("/api/v1/users/:id")).not.toThrow();
     });
   });
 
