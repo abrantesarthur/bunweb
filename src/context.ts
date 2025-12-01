@@ -13,6 +13,23 @@
  */
 export class Context {
   /**
+   * Creates a new Context instance from an HTTP request.
+   * @param request - The HTTP request object
+   */
+  constructor(request: globalThis.Request) {
+    const { method, url } = request;
+    const { pathname, origin, host, hostname, protocol } = new URL(url);
+    this.request = request;
+    this.method = method.toLowerCase();
+    this.path = pathname;
+    this.origin = origin;
+    this.host = host;
+    this.hostname = hostname;
+    this.protocol = protocol;
+    this._status = 404;
+  }
+
+  /**
    * Mapping from HTTP status code to status text.
    * Based on the mappings from helpers.ts.
    */
@@ -87,23 +104,6 @@ export class Context {
   headers: Record<string, string> = {};
 
   /**
-   * Creates a new Context instance from an HTTP request.
-   * @param request - The HTTP request object
-   */
-  constructor(request: globalThis.Request) {
-    const { method, url } = request;
-    const { pathname, origin, host, hostname, protocol } = new URL(url);
-    this.request = request;
-    this.method = method.toLowerCase();
-    this.path = pathname;
-    this.origin = origin;
-    this.host = host;
-    this.hostname = hostname;
-    this.protocol = protocol;
-    this._status = 404;
-  }
-
-  /**
    * Converts the context to an HTTP Response object.
    * Handles different body types (string, JSON objects, Response, Error).
    * @returns HTTP Response object ready to be sent
@@ -141,7 +141,7 @@ export class Context {
     const statusText = Context.getStatusText(this.status);
     return new globalThis.Response(responseBody, {
       status: this.status,
-      statusText: statusText,
+      ...(statusText && { statusText }),
       headers: Object.keys(headers).length > 0 ? headers : undefined,
     });
   }

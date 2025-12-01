@@ -151,24 +151,21 @@ export class Bunweb implements Request {
               return ctx.toResponse();
           }
 
-          // Gather middlewares and extract route parameters
-          // 1. Get "use" middlewares (prefix match)
-          const useMatch = this.routeMatchersByMethod[Method.Use].match(path);
-          const useMiddlewares = useMatch?.middlewares ?? [];
-          const useParams = useMatch?.params ?? {};
-
-          // 2. Get method-specific middlewares (exact match)
+          // 1. Get method-specific middlewares (exact match)
           const methodMatch =
             this.routeMatchersByMethod[methodEnum].match(path);
           const methodMiddlewares = methodMatch?.middlewares ?? [];
-          const methodParams = methodMatch?.params ?? {};
-
-          // If no method-specific middlewares matched, return Not Found error
-          // Method-specific handlers are required - "use" middlewares alone are not sufficient
           if (methodMiddlewares.length === 0) {
             ctx.status = 404;
             return ctx.toResponse();
           }
+          const methodParams = methodMatch?.params ?? {};
+
+          // Gather middlewares and extract route parameters
+          // 2. Get "use" middlewares (prefix match)
+          const useMatch = this.routeMatchersByMethod[Method.Use].match(path);
+          const useMiddlewares = useMatch?.middlewares ?? [];
+          const useParams = useMatch?.params ?? {};
 
           // Method-specific params completely replace prefix params when present
           ctx.params = methodMatch ? methodParams : useParams;
@@ -177,7 +174,6 @@ export class Bunweb implements Request {
           const onion = new Onion([useMiddlewares, methodMiddlewares]);
 
           // Execute the middleware chain
-          // Onion automatically sets status to 500 if error exists and status is still 200
           await onion.run(ctx);
 
           // Convert context to Response
