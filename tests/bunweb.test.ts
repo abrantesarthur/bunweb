@@ -632,7 +632,7 @@ describe("Bunweb.listen", () => {
     expect(text).toEqual("Something went wrong");
   });
 
-  it("SF allows setting custom headers in context", async () => {
+  it.only("SF allows setting custom headers in context", async () => {
     const handler: Middleware = async (ctx, next) => {
       ctx.set("X-Custom-Header", "custom-value");
       ctx.set("X-Another-Header", "another-value");

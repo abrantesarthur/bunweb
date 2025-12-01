@@ -1,5 +1,6 @@
 import type { BaseMiddleware } from "./types";
 
+const INVALID_CHARS = /[^A-Za-z0-9\/._:-]/;
 const STATIC_SEGMENT = /^[a-zA-Z0-9._-]+$/;
 const DYNAMIC_SEGMENT = /^:[a-zA-Z0-9_]+$/;
 const DYNAMIC_KEY = ":";
@@ -55,11 +56,7 @@ export class RouteMatcher {
    * @throws Error if path contains invalid segments or wildcard characters
    */
   insert(path: string, middlewares: BaseMiddleware[]): void {
-    // Check for wildcard character (*) in the path
-    const wildcardIndex = path.indexOf("*");
-    if (wildcardIndex !== -1) {
-      throw new Error(`Unexpected wildcard MODIFIER at ${wildcardIndex}`);
-    }
+    this.validatePath(path);
 
     const segments = this.splitPath(path);
     let current = this.root;
@@ -93,9 +90,12 @@ export class RouteMatcher {
   /**
    * Matches a path against registered routes and returns middlewares with extracted parameters.
    * @param path - Request path to match (e.g., "/users/123")
+   * @throws Error if path contains invalid characters (e.g., "?", "#", "*")
    * @returns Match result with middlewares and params, or undefined if no match
    */
   match(path: string): MatchResult | undefined {
+    this.validatePath(path);
+
     const segments = this.splitPath(path);
     const result =
       this.mode === RouteMatcherMode.Prefix
@@ -287,6 +287,18 @@ export class RouteMatcher {
       middlewares: aggregatedMiddlewares,
       params: aggregatedParams,
     };
+  }
+
+  /**
+   * Validates that a path does not contain invalid characters.
+   * @param path - Path to validate
+   * @throws Error if path contains invalid characters (e.g., "?", "#", "*")
+   */
+  private validatePath(path: string): void {
+    const invalidChar = INVALID_CHARS.exec(path);
+    if (invalidChar) {
+      throw new Error(`Unexpected MODIFIER at ${invalidChar.index}`);
+    }
   }
 
   private parseSegment(segment: string): {
