@@ -18,7 +18,8 @@ export class Context {
    */
   constructor(request: globalThis.Request) {
     const { method, url } = request;
-    const { pathname, origin, host, hostname, protocol } = new URL(url);
+    const urlObj = new URL(url);
+    const { pathname, origin, host, hostname, protocol } = urlObj;
     this.request = request;
     this.method = method.toLowerCase();
     this.path = pathname;
@@ -27,6 +28,7 @@ export class Context {
     this.hostname = hostname;
     this.protocol = protocol;
     this._status = 404;
+    this.setSearchParams(urlObj);
   }
 
   /**
@@ -136,6 +138,8 @@ export class Context {
   protocol: string;
   /** Internal storage for response headers */
   private _responseHeaders: Record<string, string> = {};
+  /** Internal storage for search parameters */
+  private _searchParams: Map<string, string> = new Map();
   /** Request headers (read-only) */
   get headers(): Record<string, string> {
     const headers: Record<string, string> = {};
@@ -152,6 +156,25 @@ export class Context {
    */
   set(header: string, value: string): void {
     this._responseHeaders[header] = value;
+  }
+
+  /**
+   * Extracts search parameters from the URL and stores them in _searchParams.
+   * @param url - The URL object containing search parameters
+   */
+  private setSearchParams(url: URL): void {
+    this._searchParams.clear();
+    url.searchParams.forEach((value, key) => {
+      this._searchParams.set(key, value);
+    });
+  }
+
+  /**
+   * Gets the search parameters from the URL query string.
+   * @returns Map of search parameter key-value pairs
+   */
+  get searchParams(): Map<string, string> {
+    return this._searchParams;
   }
 
   /**
