@@ -16,7 +16,7 @@ A koa-like web framework based on Bun's server.
 
 ## Limitations
 
-- Do not support specifying middlewares with wildcards (e.g., .use(/x/y/:id\*) is forbidden)
+- Does not support specifying middlewares with wildcards (e.g., .use(/x/y/:id\*) is forbidden)
 
 ## Future Improvements
 
