@@ -1,4 +1,4 @@
-<img src="/docs/bunweb.png" alt="Bunweb middleware framework for bun"/>
+<img src="/docs/logo.png" alt="Bunweb middleware framework for bun"/>
 
 # bunweb
 
