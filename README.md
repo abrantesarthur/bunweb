@@ -2,7 +2,7 @@
 
 > A Koa-like web framework for Bun — minimalist, async-first, and built with zero external dependencies.
 
-[![license](https://img.shields.io/github/license/yourusername/bunweb.svg)](LICENSE)
+[![license](https://img.shields.io/github/license/abrantesarthur/bunway.svg)](LICENSE)
 
 Expressive HTTP middleware framework for Bun to make web applications and APIs more enjoyable to write. Bunweb's middleware stack flows in a stack-like manner, allowing you to perform actions downstream then filter and manipulate the response upstream.
 
