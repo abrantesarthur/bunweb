@@ -1,3 +1,5 @@
+<img src="/docs/bunweb.png" alt="Bunweb middleware framework for bun"/>
+
 # bunweb
 
 > Koa-inspired web framework for Bun — minimal, async-first, zero dependencies.
