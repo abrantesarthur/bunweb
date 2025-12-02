@@ -70,17 +70,17 @@ app.use(async (ctx, next) => {
 
 ### Execution Order
 
-**Important**: Unlike Koa, `use` middlewares run **before** method-specific handlers. This enables global middleware (auth, logging, CORS) to execute first.
+**Important**: Unlike Koa, `use` middlewares run **before** method-specific handlers, even if they are registered after. This enables global middleware (auth, logging, CORS) to execute first.
 
 ```js
-app.use("/api", async (ctx, next) => {
-  console.log("1. API middleware");
-  await next();
-});
-
 app.get("/api/users", async (ctx, next) => {
   console.log("2. Route handler");
   ctx.body = { users: [] };
+});
+
+app.use("/api", async (ctx, next) => {
+  console.log("1. API middleware");
+  await next();
 });
 ```
 
