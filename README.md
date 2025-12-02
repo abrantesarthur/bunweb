@@ -1,4 +1,4 @@
-<img src="/docs/logo.png" alt="Bunweb middleware framework for bun"/>
+<img src="https://unpkg.com/bunweb@latest/docs/bunweb.png" alt="Bunweb middleware framework for bun"/>
 
 # bunweb
 
