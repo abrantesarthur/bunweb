@@ -78,11 +78,45 @@ export type RequestHandler = <
   ...middlewares: (Middleware<Params> | Middleware<Params>[])[]
 ) => void;
 
+/**
+ * Handler function for registering middleware with the `use` method.
+ * Supports both path-specific and global middleware registration.
+ * @overload
+ * @param path - Route path pattern (uses prefix matching)
+ * @param middlewares - One or more middleware functions (can be arrays)
+ * @overload
+ * @param middlewares - One or more middleware functions (can be arrays) for global middleware
+ *
+ * @example
+ * ```typescript
+ * // Path-specific middleware
+ * app.use("/api", async (ctx, next) => { await next(); });
+ *
+ * // Global middleware
+ * app.use(async (ctx, next) => { await next(); });
+ * ```
+ */
+export type UseHandler = {
+  <
+    Path extends string,
+    Params extends Record<string, string> = ExtractParams<Path>,
+  >(
+    path: Path,
+    ...middlewares: (Middleware<Params> | Middleware<Params>[])[]
+  ): void;
+  (
+    ...middlewares: (
+      | Middleware<Record<string, string>>
+      | Middleware<Record<string, string>>[]
+    )[]
+  ): void;
+};
+
 export interface Request {
   [Method.Get]: RequestHandler;
   [Method.Post]: RequestHandler;
   [Method.Put]: RequestHandler;
-  [Method.Use]: RequestHandler;
+  [Method.Use]: UseHandler;
 }
 
 export interface RouteDefinition {

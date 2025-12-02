@@ -3,6 +3,7 @@ import {
   type BaseMiddleware,
   type Request,
   type RequestHandler,
+  type UseHandler,
 } from "./types";
 import { RouteMatcher, RouteMatcherMode } from "./routeMatcher";
 import { Onion } from "./onion";
@@ -94,15 +95,35 @@ export class Bunweb implements Request {
   /**
    * Registers a middleware that matches all HTTP methods with prefix matching.
    * Use middlewares are executed before method-specific middlewares.
-   * @param path - Route path pattern (uses prefix matching)
+   * Supports both path-specific and global middleware registration.
+   * @param path - Route path pattern (uses prefix matching) - optional for global middleware
    * @param middlewares - One or more middleware functions
+   *
+   * @example
+   * ```typescript
+   * // Path-specific middleware
+   * app.use("/api", async (ctx, next) => { await next(); });
+   *
+   * // Global middleware (applies to all routes)
+   * app.use(async (ctx, next) => { await next(); });
+   * ```
    */
-  use: RequestHandler = (path, ...middlewares) =>
-    this.registerRoute(
-      path,
-      Method.Use,
-      ...(middlewares as unknown as (BaseMiddleware | BaseMiddleware[])[])
-    );
+  use: UseHandler = ((...args: unknown[]) => {
+    // Check if first argument is a string (path) or a function (middleware)
+    if (args.length > 0 && typeof args[0] === "string") {
+      // Path-specific middleware: (path, ...middlewares)
+      const path = args[0] as string;
+      const middlewares = args.slice(1) as (
+        | BaseMiddleware
+        | BaseMiddleware[]
+      )[];
+      return this.registerRoute(path, Method.Use, ...middlewares);
+    } else {
+      // Global middleware: (...middlewares) - use "/" as path to match all routes
+      const middlewares = args as (BaseMiddleware | BaseMiddleware[])[];
+      return this.registerRoute("/", Method.Use, ...middlewares);
+    }
+  }) as UseHandler;
 
   /**
    * Starts the HTTP server and begins listening for requests.

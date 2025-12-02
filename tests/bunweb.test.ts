@@ -13,7 +13,10 @@ type BunwebInternal = {
   ) => void;
   routeMatchersByMethod: Record<Method, RouteMatcher>;
   clear: () => void; // private method accessed via type assertion
-  use: (path: string, ...middlewares: (Middleware | Middleware[])[]) => void;
+  use: {
+    (path: string, ...middlewares: (Middleware | Middleware[])[]): void;
+    (...middlewares: (Middleware | Middleware[])[]): void;
+  };
   get: (path: string, ...middlewares: (Middleware | Middleware[])[]) => void;
   post: (path: string, ...middlewares: (Middleware | Middleware[])[]) => void;
   put: (path: string, ...middlewares: (Middleware | Middleware[])[]) => void;
@@ -650,5 +653,314 @@ describe("Bunweb.listen", () => {
     expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
     expect(response.headers.get("X-Another-Header")).toBe("another-value");
     expect(response.headers.get("Content-Type")).toBe("text/plain");
+  });
+
+  describe("Bunweb.use global middleware", () => {
+    let testServer: Server<undefined> | null = null;
+    const calls: string[] = [];
+    const app = server() as unknown as BunwebInternal;
+
+    beforeEach(() => {
+      calls.length = 0;
+      app.clear();
+    });
+
+    afterEach(() => {
+      if (testServer) {
+        testServer.stop();
+        testServer = null;
+      }
+      calls.length = 0;
+    });
+
+    it("registers global middleware without a path", async () => {
+      const globalMiddleware: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      app.use(globalMiddleware);
+      app.get("/test", getHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global", "get"]);
+    });
+
+    it("registers multiple global middlewares", async () => {
+      const global1: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global1");
+        await next();
+      };
+      const global2: Middleware = async (_, next) => {
+        calls.push("global2");
+        await next();
+      };
+      const global3: Middleware = async (_, next) => {
+        calls.push("global3");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      app.use(global1);
+      app.use(global2);
+      app.use(global3);
+      app.get("/test", getHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global1", "global2", "global3", "get"]);
+    });
+
+    it("executes global middleware before path-specific use middleware", async () => {
+      const global: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global");
+        await next();
+      };
+      const pathSpecific: Middleware = async (_, next) => {
+        calls.push("path-specific");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      app.use("/test", pathSpecific);
+      app.get("/test", getHandler);
+      app.use(global);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global", "path-specific", "get"]);
+    });
+
+    it("applies global middleware to all HTTP methods (GET, POST, PUT)", async () => {
+      const global: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+      const postHandler: Middleware = async (_, next) => {
+        calls.push("post");
+        await next();
+      };
+      const putHandler: Middleware = async (_, next) => {
+        calls.push("put");
+        await next();
+      };
+
+      app.use(global);
+      app.get("/test", getHandler);
+      app.post("/test", postHandler);
+      app.put("/test", putHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      // Test GET
+      const getResponse = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(getResponse.status).toBe(200);
+      expect(calls).toEqual(["global", "get"]);
+      calls.length = 0;
+
+      // Test POST
+      const postResponse = await fetch(`http://localhost:${port}/test`, {
+        method: "POST",
+      });
+      expect(postResponse.status).toBe(200);
+      expect(calls).toEqual(["global", "post"]);
+      calls.length = 0;
+
+      // Test PUT
+      const putResponse = await fetch(`http://localhost:${port}/test`, {
+        method: "PUT",
+      });
+      expect(putResponse.status).toBe(200);
+      expect(calls).toEqual(["global", "put"]);
+    });
+
+    it("applies global middleware to all routes regardless of path", async () => {
+      const global: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global");
+        await next();
+      };
+      const getHandler1: Middleware = async (_, next) => {
+        calls.push("get1");
+        await next();
+      };
+      const getHandler2: Middleware = async (_, next) => {
+        calls.push("get2");
+        await next();
+      };
+
+      app.use(global);
+      app.get("/route1", getHandler1);
+      app.get("/route2", getHandler2);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      // Test route1
+      const response1 = await fetch(`http://localhost:${port}/route1`, {
+        method: "GET",
+      });
+      expect(response1.status).toBe(200);
+      expect(calls).toEqual(["global", "get1"]);
+      calls.length = 0;
+
+      // Test route2
+      const response2 = await fetch(`http://localhost:${port}/route2`, {
+        method: "GET",
+      });
+      expect(response2.status).toBe(200);
+      expect(calls).toEqual(["global", "get2"]);
+    });
+
+    it("maintains registration order for multiple global middleware", async () => {
+      const global1: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global1");
+        await next();
+      };
+      const global2: Middleware = async (_, next) => {
+        calls.push("global2");
+        await next();
+      };
+      const global3: Middleware = async (_, next) => {
+        calls.push("global3");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      // Register in specific order
+      app.use(global1, global2);
+      app.use(global3);
+      app.get("/test", getHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global1", "global2", "global3", "get"]);
+    });
+
+    it("works with global middleware and nested path-specific middleware", async () => {
+      const global: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global");
+        await next();
+      };
+      const path1: Middleware = async (_, next) => {
+        calls.push("path1");
+        await next();
+      };
+      const path2: Middleware = async (_, next) => {
+        calls.push("path2");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      app.use(global);
+      app.use("/api", path1);
+      app.use("/api/v1", path2);
+      app.get("/api/v1/test", getHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/api/v1/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global", "path1", "path2", "get"]);
+    });
+
+    it("supports global middleware with array of middlewares", async () => {
+      const global1: Middleware = async (ctx, next) => {
+        ctx.body = {};
+        calls.push("global1");
+        await next();
+      };
+      const global2: Middleware = async (_, next) => {
+        calls.push("global2");
+        await next();
+      };
+      const getHandler: Middleware = async (_, next) => {
+        calls.push("get");
+        await next();
+      };
+
+      app.use([global1, global2]);
+      app.get("/test", getHandler);
+
+      testServer = app.listen({ port: 0 });
+      const port = testServer.port || 0;
+
+      const response = await fetch(`http://localhost:${port}/test`, {
+        method: "GET",
+      });
+      expect(response.status).toBe(200);
+      expect(calls).toEqual(["global1", "global2", "get"]);
+    });
+
+    it("throws error when global middleware contains non-function", () => {
+      const handler: Middleware = async (_, __) => {};
+
+      // @ts-expect-error - Testing invalid input (null instead of middleware)
+      expect(() => app.use(handler, null as unknown)).toThrow(
+        'The path "/" contains a non-functional "use" handler.'
+      );
+    });
+
+    it("throws error when global middleware array contains non-function", () => {
+      const handler: Middleware = async (_, __) => {};
+
+      // @ts-expect-error - Testing invalid input (string instead of middleware)
+      expect(() => app.use([handler, "oops" as unknown])).toThrow(
+        'The path "/" contains a non-functional "use" handler.'
+      );
+    });
   });
 });
