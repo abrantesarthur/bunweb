@@ -1,6 +1,6 @@
 {
   "name": "bunweb",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "A Koa-like web framework for Bun — minimalist, async-first, and built with zero external dependencies.",
   "type": "module",
   "main": "dist/index.js",

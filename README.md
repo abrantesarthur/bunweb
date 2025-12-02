@@ -41,6 +41,7 @@ const app = server();
 
 app.get("/", async (ctx, next) => {
   ctx.body = "Hello Bunweb";
+  await next();
 });
 
 app.listen({ port: 3000 });
